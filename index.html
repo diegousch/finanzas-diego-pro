@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Finanzas Diego PRO - Días Laborables (Lunes a Viernes)</title>
+    <title>Finanzas Diego PRO - Opción 1 (Depósito Completo)</title>
     <style>
         :root {
             --bg-dark: #0f172a;
@@ -144,6 +144,21 @@
             text-align: left;
         }
         th { color: var(--text-muted); }
+        .mes-historial-card {
+            background: #0f172a;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 12px;
+        }
+        .mes-historial-title {
+            font-weight: bold;
+            color: var(--primary);
+            font-size: 1.1rem;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+        }
     </style>
 </head>
 <body>
@@ -152,7 +167,7 @@
     <header>
         <h1>Finanzas Diego PRO</h1>
         <div class="badge-mes" id="lblMesActual">Cargando mes...</div>
-        <p>Semanas de Días Laborables (Lunes a Viernes)</p>
+        <p>Semanas Completas por Fecha de Depósito</p>
     </header>
 
     <!-- Estado de Deuda -->
@@ -166,9 +181,9 @@
         <h2>Registrar / Seleccionar Semana Laboral</h2>
         <input type="hidden" id="editIndex" value="-1">
         <div class="form-group">
-            <label>Selecciona la Semana (Laborable L-V)</label>
+            <label>Selecciona la Semana (Lunes a Viernes)</label>
             <select id="nombreSemana">
-                <!-- Se llenará dinámicamente con semanas laborables -->
+                <!-- Se llenará dinámicamente -->
             </select>
         </div>
         <div class="form-group">
@@ -193,10 +208,10 @@
 
     <!-- Semanas Registradas en el Mes -->
     <div class="card">
-        <h2>Semanas Laborables Registradas</h2>
+        <h2>Semanas Laborables Registradas (Mes Actual)</h2>
         <table>
             <thead>
-                <tr><th>Semana / Días Hábiles</th><th>Ingreso</th><th>Abono</th><th>Acciones</th></tr>
+                <tr><th>Semana</th><th>Ingreso</th><th>Abono</th><th>Acciones</th></tr>
             </thead>
             <tbody id="tablaSemanas">
                 <tr><td colspan="4" style="text-align: center; color: var(--text-muted);">Sin semanas registradas este mes</td></tr>
@@ -205,17 +220,12 @@
         <button class="btn btn-success" style="margin-top: 15px;" onclick="cerrarMes()">Cerrar Mes Actual e Iniciar Siguiente</button>
     </div>
 
-    <!-- Historial de Cierres Mensuales -->
+    <!-- Historial Detallado de Cierres Mensuales -->
     <div class="card">
-        <h2>Historial de Cierres Mensuales</h2>
-        <table>
-            <thead>
-                <tr><th>Mes</th><th>Ganado</th><th>Gastado</th><th>Deuda Pagada</th></tr>
-            </thead>
-            <tbody id="tablaCierres">
-                <tr><td colspan="4" style="text-align: center; color: var(--text-muted);">Sin cierres mensuales aún</td></tr>
-            </tbody>
-        </table>
+        <h2>Historial Detallado de Meses</h2>
+        <div id="contenedorHistorialDetallado">
+            <p style="text-align: center; color: var(--text-muted);">Sin cierres mensuales guardados aún.</p>
+        </div>
     </div>
 
     <!-- Configuración de Gastos del Mes -->
@@ -252,71 +262,61 @@
 <script>
     let deudaInicialBase = 10000;
     let semanasMes = [];
-    let cierresMensuales = [];
+    let cierresMensualesDetallados = [];
     const nombresMeses = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
     
     let fechaActualSistema = new Date();
     let mesIndex = fechaActualSistema.getMonth();
     let anioActual = fechaActualSistema.getFullYear();
 
-    // Generador de semanas estrictamente de días laborables (Lunes a Viernes) dentro del mes
+    // Generador de semanas laborables completas (Lunes a Viernes) para el mes
     function obtenerSemanasLaborables(year, month) {
         let ultimoDiaMes = new Date(year, month + 1, 0).getDate();
         let semanas = [];
         let numSemana = 1;
 
         let d = new Date(year, month, 1);
-        
-        while (d.getDate() <= ultimoDiaMes) {
-            // Si el día cae en fin de semana (sábado=6, domingo=0), avanzamos al siguiente lunes
-            while (d.getMonth() === month && (d.getDay() === 0 || d.getDay() === 6)) {
-                d.setDate(d.getDate() + 1);
-            }
-            if (d.getMonth() !== month || d.getDate() > ultimoDiaMes) break;
+        // Ajustar al primer lunes o primer día hábil si empieza a mitad de semana
+        while (d.getMonth() === month && (d.getDay() === 0 || d.getDay() === 6)) {
+            d.setDate(d.getDate() + 1);
+        }
 
+        while (d.getMonth() === month && d.getDate() <= ultimoDiaMes) {
             let inicioSemanaDate = new Date(d);
-            
-            // Buscar el viernes de esa semana o el último día del mes
             let finSemanaDate = new Date(d);
-            while (finSemanaDate.getMonth() === month && finSemanaDate.getDate() <= ultimoDiaMes && finSemanaDate.getDay() !== 5 && finSemanaDate.getDate() < ultimoDiaMes) {
-                let siguienteDia = new Date(finSemanaDate);
-                siguienteDia.setDate(siguienteDia.getDate() + 1);
-                if (siguienteDia.getDay() === 6 || siguienteDia.getMonth() !== month) break;
+            
+            // Avanzar hasta el viernes de esa semana (o hasta el fin de mes si cae antes, aunque la semana laboral siga)
+            while (finSemanaDate.getDay() !== 5 && finSemanaDate.getDate() < ultimoDiaMes) {
                 finSemanaDate.setDate(finSemanaDate.getDate() + 1);
             }
 
-            let inicioDia = inicioSemanaDate.getDate();
-            let finDia = finSemanaDate.getDate();
-
             semanas.push({
                 id: `Semana ${numSemana}`,
-                inicio: inicioDia,
-                fin: finDia,
-                texto: `Semana ${numSemana} (Días ${inicioDia} al ${finDia} - L/V)`
+                inicio: inicioSemanaDate.getDate(),
+                fin: finSemanaDate.getDate(),
+                texto: `Semana ${numSemana} (Lunes ${inicioSemanaDate.getDate()} al Viernes ${finSemanaDate.getDate()})`
             });
 
-            // Avanzar al siguiente lunes
+            // Pasar al siguiente lunes
             d = new Date(finSemanaDate);
             d.setDate(d.getDate() + 1);
-            while (d.getMonth() === month && d.getDay() !== 1) {
+            while (d.getDay() !== 1 && (d.getMonth() === month && d.getDate() <= ultimoDiaMes)) {
                 d.setDate(d.getDate() + 1);
             }
-            
-            if (d.getMonth() !== month || d.getDate() > ultimoDiaMes) {
-                break;
-            }
+            if (d.getMonth() !== month || d.getDate() > ultimoDiaMes) break;
             numSemana++;
         }
+
         return semanas;
     }
 
     let listaSemanasMes = obtenerSemanasLaborables(anioActual, mesIndex);
 
-    if(localStorage.getItem('finanzas_semanas_laborables')) {
-        semanasMes = JSON.parse(localStorage.getItem('finanzas_semanas_laborables'));
+    if(localStorage.getItem('finanzas_semanas_op1')) {
+        semanasMes = JSON.parse(localStorage.getItem('finanzas_semanas_op1'));
     }
-    if(localStorage.getItem('finanzas_cierres_lab')) {
-        cierresMensuales = JSON.parse(localStorage.getItem('finanzas_cierres_lab'));
+    if(localStorage.getItem('finanzas_cierres_op1')) {
+        cierresMensualesDetallados = JSON.parse(localStorage.getItem('finanzas_cierres_op1'));
     }
 
     function inicializarSelectSemanas() {
@@ -344,15 +344,15 @@
 
     function cargarGastos() {
         ['carro', 'seguroCarro', 'gasolina', 'streaming', 'gym', 'celular', 'seguroVida', 'salidas', 'family', 'rentaRestante', 'tcRoja', 'tcGris'].forEach(id => {
-            if(localStorage.getItem('gasto_lab_' + id) !== null) {
-                document.getElementById(id).value = localStorage.getItem('gasto_lab_' + id);
+            if(localStorage.getItem('gasto_op1_' + id) !== null) {
+                document.getElementById(id).value = localStorage.getItem('gasto_op1_' + id);
             }
         });
     }
 
     function guardarGastos() {
         ['carro', 'seguroCarro', 'gasolina', 'streaming', 'gym', 'celular', 'seguroVida', 'salidas', 'family', 'rentaRestante', 'tcRoja', 'tcGris'].forEach(id => {
-            localStorage.setItem('gasto_lab_' + id, document.getElementById(id).value);
+            localStorage.setItem('gasto_op1_' + id, document.getElementById(id).value);
         });
         recalcularDeudaTotal();
         alert("¡Gastos del mes guardados y deuda recalculada!");
@@ -376,23 +376,23 @@
 
     function recalcularDeudaTotal() {
         let deudaTemp = deudaInicialBase;
+        let totalGastos = calcularTotalMensualGastos();
+        let numSemanasMes = listaSemanasMes.length > 0 ? listaSemanasMes.length : 4;
+        let gastoSemanalBase = totalGastos / numSemanasMes;
         let nominaRenta = parseFloat(document.getElementById('rentaNomina').value) || 0;
-        let totalMensual = calcularTotalMensualGastos();
-        let totalSemanas = listaSemanasMes.length;
-        let gastoSemanalEstimado = totalSemanas > 0 ? (totalMensual / totalSemanas) : totalMensual;
-        let totalApartadoSemanal = gastoSemanalEstimado + nominaRenta;
+        let totalApartadoSemanal = gastoSemanalBase + nominaRenta;
 
         semanasMes.forEach(s => {
+            s.gastos = totalApartadoSemanal;
             let abono = s.ingreso - totalApartadoSemanal;
             if(abono < 0) abono = 0;
-            s.gastos = totalApartadoSemanal;
             s.abono = abono;
             deudaTemp -= abono;
         });
 
         if(deudaTemp < 0) deudaTemp = 0;
         document.getElementById('lblDeuda').innerText = "$" + deudaTemp.toFixed(2);
-        localStorage.setItem('finanzas_semanas_laborables', JSON.stringify(semanasMes));
+        localStorage.setItem('finanzas_semanas_op1', JSON.stringify(semanasMes));
     }
 
     function procesarSemana() {
@@ -406,10 +406,11 @@
             return;
         }
 
+        let totalGastos = calcularTotalMensualGastos();
+        let numSemanasMes = listaSemanasMes.length > 0 ? listaSemanasMes.length : 4;
+        let gastoSemanalBase = totalGastos / numSemanasMes;
         let nominaRenta = parseFloat(document.getElementById('rentaNomina').value) || 0;
-        let totalMensual = calcularTotalMensualGastos();
-        let gastoSemanalEstimado = totalMensual / listaSemanasMes.length;
-        let totalApartadoSemanal = gastoSemanalEstimado + nominaRenta;
+        let totalApartadoSemanal = gastoSemanalBase + nominaRenta;
 
         let abono = ingreso - totalApartadoSemanal;
         if (abono < 0) abono = 0;
@@ -497,56 +498,88 @@
         let totalGastado = semanasMes.reduce((acc, curr) => acc + curr.gastos, 0);
         let totalDeudaPagada = semanasMes.reduce((acc, curr) => acc + curr.abono, 0);
 
-        cierresMensuales.push({
+        cierresMensualesDetallados.push({
             mesNombre: nombresMeses[mesIndex] + " " + anioActual,
-            ganado: totalGanado,
-            gastado: totalGastado,
-            pagadoDeuda: totalDeudaPagada
+            totalGanado: totalGanado,
+            totalGastado: totalGastado,
+            totalDeudaPagada: totalDeudaPagada,
+            semanasDetalle: [...semanasMes]
         });
 
-        localStorage.setItem('finanzas_cierres_lab', JSON.stringify(cierresMensuales));
-        actualizarTablaCierres();
+        localStorage.setItem('finanzas_cierres_op1', JSON.stringify(cierresMensualesDetallados));
+        actualizarHistorialDetallado();
 
         semanasMes = [];
-        localStorage.removeItem('finanzas_semanas_laborables');
+        localStorage.removeItem('finanzas_semanas_op1');
         actualizarTablaSemanas();
         document.getElementById('resultadoCard').style.display = "none";
 
-        ['tcRoja', 'tcGris', 'family'].forEach(id => {
-            document.getElementById(id).value = 0;
-            localStorage.setItem('gasto_lab_' + id, 0);
-        });
+        alert("¡Mes cerrado y guardado con éxito!");
+        
+        mesIndex++;
+        if(mesIndex > 11) {
+            mesIndex = 0;
+            anioActual++;
+        }
+        listaSemanasMes = obtenerSemanasLaborables(anioActual, mesIndex);
 
-        alert("¡Mes cerrado con éxito! Se han reiniciado los campos variables.");
-        location.reload();
+        document.getElementById('lblMesActual').innerText = `Mes: ${nombresMeses[mesIndex]} ${anioActual}`;
+        inicializarSelectSemanas();
+        recalcularDeudaTotal();
     }
 
-    function actualizarTablaCierres() {
-        let tbody = document.getElementById('tablaCierres');
-        tbody.innerHTML = "";
-        if(cierresMensuales.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--text-muted);">Sin cierres mensuales aún</td></tr>`;
+    function actualizarHistorialDetallado() {
+        let contenedor = document.getElementById('contenedorHistorialDetallado');
+        contenedor.innerHTML = "";
+        
+        if(cierresMensualesDetallados.length === 0) {
+            contenedor.innerHTML = `<p style="text-align: center; color: var(--text-muted);">Sin cierres mensuales guardados aún.</p>`;
             return;
         }
-        cierresMensuales.forEach(c => {
-            let tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td><strong>${c.mesNombre}</strong></td>
-                <td>$${c.ganado.toFixed(2)}</td>
-                <td>$${c.gastos.toFixed(2)}</td>
-                <td style="color: var(--success); font-weight: bold;">$${c.pagadoDeuda.toFixed(2)}</td>
+
+        cierresMensualesDetallados.forEach((c) => {
+            let divMes = document.createElement('div');
+            divMes.className = "mes-historial-card";
+            
+            let htmlSemanas = "";
+            c.semanasDetalle.forEach(sem => {
+                htmlSemanas += `
+                    <tr>
+                        <td>${sem.nombre}</td>
+                        <td>$${sem.ingreso.toFixed(2)}</td>
+                        <td style="color: var(--success);">$${sem.abono.toFixed(2)}</td>
+                    </tr>
+                `;
+            });
+
+            divMes.innerHTML = `
+                <div class="mes-historial-title">
+                    <span>📅 ${c.mesNombre}</span>
+                    <span style="font-size: 0.85rem; color: var(--text-muted);">Deuda Pagada: <strong style="color: var(--success);">$${c.totalDeudaPagada.toFixed(2)}</strong></span>
+                </div>
+                <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 8px;">
+                    Total Ingresos: <strong>$${c.totalGanado.toFixed(2)}</strong> | Total Gastos/Apartados: <strong>$${c.totalGastado.toFixed(2)}</strong>
+                </div>
+                <table>
+                    <thead>
+                        <tr><th>Semana (L-V)</th><th>Ingreso</th><th>Abono</th></tr>
+                    </thead>
+                    <tbody>
+                        ${htmlSemanas}
+                    </tbody>
+                </table>
             `;
-            tbody.appendChild(tr);
+            contenedor.appendChild(divMes);
         });
     }
 
     window.onload = function() {
         cargarGastos();
-        document.getElementById('lblMesActual').innerText = `Mes: ${nombresMeses[mesIndex]} ${anioActual} (${listaSemanasMes.length} semanas laborables)`;
+        document.getElementById('lblMesActual').innerText = `Mes: ${nombresMeses[mesIndex]} ${anioActual}`;
         inicializarSelectSemanas();
         recalcularDeudaTotal();
         actualizarTablaSemanas();
-        actualizarTablaCierres();
+        actualizarHistorialDetallado();
     };
 </script>
 
