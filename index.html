@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Finanzas Diego PRO - Control Mensual y Deuda</title>
+    <title>Finanzas Diego PRO - Semanas con Fechas Exactas</title>
     <style>
         :root {
             --bg-dark: #0f172a;
@@ -151,8 +151,8 @@
 <div class="container">
     <header>
         <h1>Finanzas Diego PRO</h1>
-        <div class="badge-mes" id="lblMesActual">Mes: Septiembre 2026</div>
-        <p>Control Semanal y Reducción de Deuda</p>
+        <div class="badge-mes" id="lblMesActual">Cargando mes...</div>
+        <p>Control con Rangos de Fechas Reales</p>
     </header>
 
     <!-- Estado de Deuda -->
@@ -163,11 +163,13 @@
 
     <!-- Registrar Ingreso de Semana -->
     <div class="card">
-        <h2>Registrar / Editar Ingreso de Semana</h2>
+        <h2>Registrar / Seleccionar Semana</h2>
         <input type="hidden" id="editIndex" value="-1">
         <div class="form-group">
-            <label>Etiqueta de Semana</label>
-            <input type="text" id="nombreSemana" placeholder="Ej. Semana 1" value="Semana actual">
+            <label>Selecciona la Semana (con sus días correspondientes)</label>
+            <select id="nombreSemana">
+                <!-- Se llenará dinámicamente con los rangos de fecha reales -->
+            </select>
         </div>
         <div class="form-group">
             <label>Monto neto recibido ($)</label>
@@ -194,7 +196,7 @@
         <h2>Semanas Registradas este Mes</h2>
         <table>
             <thead>
-                <tr><th>Semana</th><th>Ingreso</th><th>Abono</th><th>Acciones</th></tr>
+                <tr><th>Semana / Fechas</th><th>Ingreso</th><th>Abono</th><th>Acciones</th></tr>
             </thead>
             <tbody id="tablaSemanas">
                 <tr><td colspan="4" style="text-align: center; color: var(--text-muted);">Sin semanas registradas este mes</td></tr>
@@ -236,7 +238,7 @@
             <div class="form-group"><label>Salidas</label><input type="number" id="salidas" onfocus="this.select()" value="300"></div>
         </div>
         <div class="grid-2">
-            <div class="form-group"><label>Family (Var.)</label><input type="number" id="family" onfocus="this.select()" value="450"></div>
+            <div class="form-group"><label>Family (Var.)</label><input type="number" id="family" onfocus="this.select()" value="0"></div>
             <div class="form-group"><label>Renta Restante (Día 4)</label><input type="number" id="rentaRestante" onfocus="this.select()" value="500"></div>
         </div>
         <div class="grid-2">
@@ -252,8 +254,48 @@
     let semanasMes = [];
     let cierresMensuales = [];
     const nombresMeses = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
-    let mesIndex = 8; // Septiembre 2026
-    let anioActual = 2026;
+    const nombresMesesCortos = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+    
+    const fechaActualSistema = new Date();
+    let mesIndex = fechaActualSistema.getMonth();
+    let anioActual = fechaActualSistema.getFullYear();
+
+    // Generar semanas basadas en el calendario real (Lunes a Domingo o bloques de 7 días del mes)
+    function obtenerSemanasCalendarioReal(year, month) {
+        let ultimoDiaMes = new Date(year, month + 1, 0).getDate();
+        let semanas = [];
+        let diaInicio = 1;
+        let numSemana = 1;
+
+        while (diaInicio <= ultimoDiaMes) {
+            // Cada semana toma bloques de 7 días o hasta que termine el mes
+            let diaFin = Math.min(diaInicio + 6, ultimoDiaMes);
+            
+            // Si la última semana es muy corta (ej. solo 1 o 2 días al final de mes), la fusionamos con la semana anterior para mayor comodidad financiera
+            if (numSemana > 4 && (diaFin - diaInicio + 1) <= 3 && semanas.length > 0) {
+                let ultima = semanas[semanas.length - 1];
+                ultima.fin = diaFin;
+                if(diaFin + 3 <= ultimoDiaMes) { // Si hay más días
+                    // ajustar
+                }
+                break;
+            }
+
+            semanas.push({
+                id: `Semana ${numSemana}`,
+                inicio: diaInicio,
+                fin: diaFin,
+                texto: `Semana ${numSemana} (${diaInicio} al ${diaFin} de ${nombresMeses[month]})`
+            });
+
+            diaInicio = diaFin + 1;
+            numSemana++;
+            if (numSemana > 6) break; // Límite de seguridad
+        }
+        return semanas;
+    }
+
+    let listaSemanasMes = obtenerSemanasCalendarioReal(anioActual, mesIndex);
 
     if(localStorage.getItem('finanzas_semanas')) {
         semanasMes = JSON.parse(localStorage.getItem('finanzas_semanas'));
@@ -261,11 +303,28 @@
     if(localStorage.getItem('finanzas_cierres')) {
         cierresMensuales = JSON.parse(localStorage.getItem('finanzas_cierres'));
     }
-    if(localStorage.getItem('finanzas_mesIndex')) {
-        mesIndex = parseInt(localStorage.getItem('finanzas_mesIndex'));
+
+    function inicializarSelectSemanas() {
+        let select = document.getElementById('nombreSemana');
+        select.innerHTML = "";
+        listaSemanasMes.forEach(sem => {
+            let option = document.createElement('option');
+            option.value = sem.id;
+            option.textContent = sem.texto;
+            select.appendChild(option);
+        });
+        seleccionarSemanaAutomatica();
     }
-    if(localStorage.getItem('finanzas_anioActual')) {
-        anioActual = parseInt(localStorage.getItem('finanzas_anioActual'));
+
+    function seleccionarSemanaAutomatica() {
+        let diaMes = fechaActualSistema.getDate();
+        let semanaEncontrada = listaSemanasMes.find(s => diaMes >= s.inicio && diaMes <= s.fin);
+        let select = document.getElementById('nombreSemana');
+        if (semanaEncontrada) {
+            select.value = semanaEncontrada.id;
+        } else if (listaSemanasMes.length > 0) {
+            select.value = listaSemanasMes[listaSemanasMes.length - 1].id;
+        }
     }
 
     function cargarGastos() {
@@ -304,7 +363,8 @@
         let deudaTemp = deudaInicialBase;
         let nominaRenta = parseFloat(document.getElementById('rentaNomina').value) || 0;
         let totalMensual = calcularTotalMensualGastos();
-        let gastoSemanalEstimado = totalMensual / 4;
+        let totalSemanas = listaSemanasMes.length;
+        let gastoSemanalEstimado = totalMensual / totalSemanas;
         let totalApartadoSemanal = gastoSemanalEstimado + nominaRenta;
 
         semanasMes.forEach(s => {
@@ -321,7 +381,10 @@
     }
 
     function procesarSemana() {
-        let nombreSem = document.getElementById('nombreSemana').value || "Semana";
+        let idSemanaSeleccionada = document.getElementById('nombreSemana').value;
+        let objetoSemanaInfo = listaSemanasMes.find(s => s.id === idSemanaSeleccionada);
+        let nombreSem = objetoSemanaInfo ? objetoSemanaInfo.texto : idSemanaSeleccionada;
+
         let ingreso = parseFloat(document.getElementById('ingresoSemanal').value) || 0;
         if(ingreso <= 0) {
             alert("Por favor ingresa un monto válido recibido.");
@@ -330,7 +393,7 @@
 
         let nominaRenta = parseFloat(document.getElementById('rentaNomina').value) || 0;
         let totalMensual = calcularTotalMensualGastos();
-        let gastoSemanalEstimado = totalMensual / 4;
+        let gastoSemanalEstimado = totalMensual / listaSemanasMes.length;
         let totalApartadoSemanal = gastoSemanalEstimado + nominaRenta;
 
         let abono = ingreso - totalApartadoSemanal;
@@ -340,6 +403,7 @@
 
         if(editIndex >= 0) {
             semanasMes[editIndex].nombre = nombreSem;
+            semanasMes[editIndex].idSemana = idSemanaSeleccionada;
             semanasMes[editIndex].ingreso = ingreso;
             semanasMes[editIndex].gastos = totalApartadoSemanal;
             semanasMes[editIndex].abono = abono;
@@ -348,6 +412,7 @@
         } else {
             semanasMes.push({
                 nombre: nombreSem,
+                idSemana: idSemanaSeleccionada,
                 ingreso: ingreso,
                 gastos: totalApartadoSemanal,
                 abono: abono
@@ -364,12 +429,12 @@
 
         actualizarTablaSemanas();
         document.getElementById('ingresoSemanal').value = "";
-        document.getElementById('nombreSemana').value = "Siguiente semana";
+        seleccionarSemanaAutomatica();
     }
 
     function editarSemana(index) {
         let s = semanasMes[index];
-        document.getElementById('nombreSemana').value = s.nombre;
+        document.getElementById('nombreSemana').value = s.idSemana || listaSemanasMes[0].id;
         document.getElementById('ingresoSemanal').value = s.ingreso;
         document.getElementById('editIndex').value = index;
         document.getElementById('btnProcesar').innerText = "Actualizar Semana";
@@ -427,30 +492,18 @@
         localStorage.setItem('finanzas_cierres', JSON.stringify(cierresMensuales));
         actualizarTablaCierres();
 
-        // Avanzar mes
-        mesIndex++;
-        if(mesIndex > 11) {
-            mesIndex = 0;
-            anioActual++;
-        }
-        localStorage.setItem('finanzas_mesIndex', mesIndex);
-        localStorage.setItem('finanzas_anioActual', anioActual);
-
-        document.getElementById('lblMesActual').innerText = "Mes: " + nombresMeses[mesIndex] + " " + anioActual;
-        
-        // Limpiar semanas actuales
         semanasMes = [];
         localStorage.removeItem('finanzas_semanas');
         actualizarTablaSemanas();
         document.getElementById('resultadoCard').style.display = "none";
 
-        // RESTABLECER CAMPOS VARIABLES A 0 PARA EL NUEVO MES
         ['tcRoja', 'tcGris', 'family'].forEach(id => {
             document.getElementById(id).value = 0;
             localStorage.setItem('gasto_' + id, 0);
         });
 
-        alert("¡Mes cerrado con éxito! Se han reiniciado los campos variables en 0 para el nuevo mes.");
+        alert("¡Mes cerrado con éxito! Se han reiniciado los campos variables.");
+        location.reload();
     }
 
     function actualizarTablaCierres() {
@@ -474,8 +527,9 @@
 
     window.onload = function() {
         cargarGastos();
+        document.getElementById('lblMesActual').innerText = `Mes: ${nombresMeses[mesIndex]} ${anioActual} (${listaSemanasMes.length} periodos)`;
+        inicializarSelectSemanas();
         recalcularDeudaTotal();
-        document.getElementById('lblMesActual').innerText = "Mes: " + nombresMeses[mesIndex] + " " + anioActual;
         actualizarTablaSemanas();
         actualizarTablaCierres();
     };
