@@ -261,10 +261,16 @@
     if(localStorage.getItem('finanzas_cierres')) {
         cierresMensuales = JSON.parse(localStorage.getItem('finanzas_cierres'));
     }
+    if(localStorage.getItem('finanzas_mesIndex')) {
+        mesIndex = parseInt(localStorage.getItem('finanzas_mesIndex'));
+    }
+    if(localStorage.getItem('finanzas_anioActual')) {
+        anioActual = parseInt(localStorage.getItem('finanzas_anioActual'));
+    }
 
     function cargarGastos() {
         ['carro', 'seguroCarro', 'gasolina', 'streaming', 'gym', 'celular', 'seguroVida', 'salidas', 'family', 'rentaRestante', 'tcRoja', 'tcGris'].forEach(id => {
-            if(localStorage.getItem('gasto_' + id)) {
+            if(localStorage.getItem('gasto_' + id) !== null) {
                 document.getElementById(id).value = localStorage.getItem('gasto_' + id);
             }
         });
@@ -421,17 +427,30 @@
         localStorage.setItem('finanzas_cierres', JSON.stringify(cierresMensuales));
         actualizarTablaCierres();
 
+        // Avanzar mes
         mesIndex++;
         if(mesIndex > 11) {
             mesIndex = 0;
             anioActual++;
         }
+        localStorage.setItem('finanzas_mesIndex', mesIndex);
+        localStorage.setItem('finanzas_anioActual', anioActual);
+
         document.getElementById('lblMesActual').innerText = "Mes: " + nombresMeses[mesIndex] + " " + anioActual;
+        
+        // Limpiar semanas actuales
         semanasMes = [];
         localStorage.removeItem('finanzas_semanas');
         actualizarTablaSemanas();
         document.getElementById('resultadoCard').style.display = "none";
-        alert("¡Mes cerrado con éxito! Se ha iniciado el registro para el siguiente mes.");
+
+        // RESTABLECER CAMPOS VARIABLES A 0 PARA EL NUEVO MES
+        ['tcRoja', 'tcGris', 'family'].forEach(id => {
+            document.getElementById(id).value = 0;
+            localStorage.setItem('gasto_' + id, 0);
+        });
+
+        alert("¡Mes cerrado con éxito! Se han reiniciado los campos variables en 0 para el nuevo mes.");
     }
 
     function actualizarTablaCierres() {
