@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Finanzas Diego PRO - Opción 1 (Depósito Completo)</title>
+    <title>Finanzas Diego PRO - Semanas Perfectas</title>
     <style>
         :root {
             --bg-dark: #0f172a;
@@ -167,7 +167,7 @@
     <header>
         <h1>Finanzas Diego PRO</h1>
         <div class="badge-mes" id="lblMesActual">Cargando mes...</div>
-        <p>Semanas Completas por Fecha de Depósito</p>
+        <p>Gestión de Semanas Laborables Inteligentes</p>
     </header>
 
     <!-- Estado de Deuda -->
@@ -269,41 +269,59 @@
     let mesIndex = fechaActualSistema.getMonth();
     let anioActual = fechaActualSistema.getFullYear();
 
-    // Generador de semanas laborables completas (Lunes a Viernes) para el mes
+    // Lógica robusta: Genera las semanas del mes basándose en los Lunes cuyo primer día esté en el mes actual.
+    // Si la última semana empieza en el mes pero termina en el siguiente mes (ej. Lunes 28 de Septiembre al Viernes 2 de Octubre), 
+    // se calcula de manera correcta y natural.
     function obtenerSemanasLaborables(year, month) {
-        let ultimoDiaMes = new Date(year, month + 1, 0).getDate();
         let semanas = [];
         let numSemana = 1;
 
+        // Empezar el día 1 del mes
         let d = new Date(year, month, 1);
-        // Ajustar al primer lunes o primer día hábil si empieza a mitad de semana
-        while (d.getMonth() === month && (d.getDay() === 0 || d.getDay() === 6)) {
+
+        // Encontrar el primer Lunes del mes (o si el mes empieza en lunes, es el día 1)
+        while (d.getDay() !== 1) {
             d.setDate(d.getDate() + 1);
         }
 
-        while (d.getMonth() === month && d.getDate() <= ultimoDiaMes) {
+        // Si ese primer lunes calculado ya pertenece al mes siguiente (ocurre si el día 1 es viernes/sábado/domingo), retrocedemos al lunes anterior que inició la primera semana de ese mes.
+        // Pero para asegurar que listamos todas las semanas cuyo Lunes pertenece al mes actual:
+        d = new Date(year, month, 1);
+        // Ajustar al primer lunes del mes o el lunes de la semana que contiene el día 1
+        let diaSemana1 = d.getDay(); // 0: Dom, 1: Lun, ..., 6: Sáb
+        if (diaSemana1 !== 1) {
+            // Si no es lunes, retroceder al lunes de esa misma semana para que el mes empiece ordenado
+            let ajuste = (diaSemana1 === 0) ? -6 : 1 - diaSemana1;
+            d.setDate(d.getDate() + ajuste);
+            // Validar que si este lunes pertenece al mes anterior, avanzamos al siguiente lunes
+            if(d.getMonth() !== month) {
+                d.setDate(d.getDate() + 7);
+            }
+        }
+
+        // Generar semanas mientras el Lunes de la semana pertenezca al mes analizado
+        while (d.getMonth() === month) {
             let inicioSemanaDate = new Date(d);
             let finSemanaDate = new Date(d);
             
-            // Avanzar hasta el viernes de esa semana (o hasta el fin de mes si cae antes, aunque la semana laboral siga)
-            while (finSemanaDate.getDay() !== 5 && finSemanaDate.getDate() < ultimoDiaMes) {
-                finSemanaDate.setDate(finSemanaDate.getDate() + 1);
+            // Avanzar 4 días para llegar al Viernes (Lunes + 4 días = Viernes)
+            finSemanaDate.setDate(finSemanaDate.getDate() + 4);
+
+            let textoRango = "";
+            if (inicioSemanaDate.getMonth() === finSemanaDate.getMonth()) {
+                textoRango = `Lunes ${inicioSemanaDate.getDate()} al Viernes ${finSemanaDate.getDate()}`;
+            } else {
+                textoRango = `Lunes ${inicioSemanaDate.getDate()} de ${nombresMeses[inicioSemanaDate.getMonth()]} al Viernes ${finSemanaDate.getDate()} de ${nombresMeses[finSemanaDate.getMonth()]}`;
             }
 
             semanas.push({
                 id: `Semana ${numSemana}`,
-                inicio: inicioSemanaDate.getDate(),
-                fin: finSemanaDate.getDate(),
-                texto: `Semana ${numSemana} (Lunes ${inicioSemanaDate.getDate()} al Viernes ${finSemanaDate.getDate()})`
+                inicioTimestamp: inicioSemanaDate.getTime(),
+                texto: `Semana ${numSemana} (${textoRango})`
             });
 
-            // Pasar al siguiente lunes
-            d = new Date(finSemanaDate);
-            d.setDate(d.getDate() + 1);
-            while (d.getDay() !== 1 && (d.getMonth() === month && d.getDate() <= ultimoDiaMes)) {
-                d.setDate(d.getDate() + 1);
-            }
-            if (d.getMonth() !== month || d.getDate() > ultimoDiaMes) break;
+            // Avanzar al siguiente lunes (sumar 7 días al lunes actual)
+            d.setDate(d.getDate() + 7);
             numSemana++;
         }
 
@@ -312,11 +330,11 @@
 
     let listaSemanasMes = obtenerSemanasLaborables(anioActual, mesIndex);
 
-    if(localStorage.getItem('finanzas_semanas_op1')) {
-        semanasMes = JSON.parse(localStorage.getItem('finanzas_semanas_op1'));
+    if(localStorage.getItem('finanzas_semanas_op1_v3')) {
+        semanasMes = JSON.parse(localStorage.getItem('finanzas_semanas_op1_v3'));
     }
-    if(localStorage.getItem('finanzas_cierres_op1')) {
-        cierresMensualesDetallados = JSON.parse(localStorage.getItem('finanzas_cierres_op1'));
+    if(localStorage.getItem('finanzas_cierres_op1_v3')) {
+        cierresMensualesDetallados = JSON.parse(localStorage.getItem('finanzas_cierres_op1_v3'));
     }
 
     function inicializarSelectSemanas() {
@@ -332,27 +350,32 @@
     }
 
     function seleccionarSemanaAutomatica() {
-        let diaMes = fechaActualSistema.getDate();
-        let semanaEncontrada = listaSemanasMes.find(s => diaMes >= s.inicio && diaMes <= s.fin);
+        let hoyTime = new Date().getTime();
         let select = document.getElementById('nombreSemana');
-        if (semanaEncontrada) {
-            select.value = semanaEncontrada.id;
+        // Seleccionar la semana más cercana o actual
+        let encontrada = listaSemanasMes.find((s, idx) => {
+            let siguiente = listaSemanasMes[idx + 1];
+            if (!siguiente) return true;
+            return hoyTime >= s.inicioTimestamp && hoyTime < siguiente.inicioTimestamp;
+        });
+        if (encontrada) {
+            select.value = encontrada.id;
         } else if (listaSemanasMes.length > 0) {
-            select.value = listaSemanasMes[listaSemanasMes.length - 1].id;
+            select.value = listaSemanasMes[0].id;
         }
     }
 
     function cargarGastos() {
         ['carro', 'seguroCarro', 'gasolina', 'streaming', 'gym', 'celular', 'seguroVida', 'salidas', 'family', 'rentaRestante', 'tcRoja', 'tcGris'].forEach(id => {
-            if(localStorage.getItem('gasto_op1_' + id) !== null) {
-                document.getElementById(id).value = localStorage.getItem('gasto_op1_' + id);
+            if(localStorage.getItem('gasto_op1_v3_' + id) !== null) {
+                document.getElementById(id).value = localStorage.getItem('gasto_op1_v3_' + id);
             }
         });
     }
 
     function guardarGastos() {
         ['carro', 'seguroCarro', 'gasolina', 'streaming', 'gym', 'celular', 'seguroVida', 'salidas', 'family', 'rentaRestante', 'tcRoja', 'tcGris'].forEach(id => {
-            localStorage.setItem('gasto_op1_' + id, document.getElementById(id).value);
+            localStorage.setItem('gasto_op1_v3_' + id, document.getElementById(id).value);
         });
         recalcularDeudaTotal();
         alert("¡Gastos del mes guardados y deuda recalculada!");
@@ -392,7 +415,7 @@
 
         if(deudaTemp < 0) deudaTemp = 0;
         document.getElementById('lblDeuda').innerText = "$" + deudaTemp.toFixed(2);
-        localStorage.setItem('finanzas_semanas_op1', JSON.stringify(semanasMes));
+        localStorage.setItem('finanzas_semanas_op1_v3', JSON.stringify(semanasMes));
     }
 
     function procesarSemana() {
@@ -506,11 +529,11 @@
             semanasDetalle: [...semanasMes]
         });
 
-        localStorage.setItem('finanzas_cierres_op1', JSON.stringify(cierresMensualesDetallados));
+        localStorage.setItem('finanzas_cierres_op1_v3', JSON.stringify(cierresMensualesDetallados));
         actualizarHistorialDetallado();
 
         semanasMes = [];
-        localStorage.removeItem('finanzas_semanas_op1');
+        localStorage.removeItem('finanzas_semanas_op1_v3');
         actualizarTablaSemanas();
         document.getElementById('resultadoCard').style.display = "none";
 
