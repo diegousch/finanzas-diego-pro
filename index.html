@@ -150,7 +150,7 @@
     <header>
         <h1>Finanzas Diego PRO</h1>
         <div class="badge-mes" id="lblMesActual">Mes: Septiembre 2026</div>
-        <p>Control Semanal, Fechas de Gastos y Cierre de Deuda</p>
+        <p>Control Semanal y Reducción de Deuda</p>
     </header>
 
     <!-- Estado de Deuda -->
@@ -159,12 +159,12 @@
         <div class="metric-value danger" id="lblDeuda">$10,000.00</div>
     </div>
 
-    <!-- Registrar Ingreso Actual o Pasado del Mes -->
+    <!-- Registrar Ingreso de Semana -->
     <div class="card">
         <h2>Registrar Ingreso de Semana (Viernes)</h2>
         <div class="form-group">
             <label>Etiqueta de Semana (Ej. Semana 1 / Pasada)</label>
-            <input type="text" id="nombreSemana" placeholder="Ej. Semana 1 (Pasada)" value="Semana actual">
+            <input type="text" id="nombreSemana" placeholder="Ej. Semana 1" value="Semana actual">
         </div>
         <div class="form-group">
             <label>Monto neto recibido ($)</label>
@@ -213,32 +213,41 @@
         </table>
     </div>
 
-    <!-- Configuración de Gastos y Fechas de Cobro -->
+    <!-- Configuración de Gastos del Mes -->
     <div class="card">
-        <h2>Gastos y Días de Cobro (Mes Actual)</h2>
-        <p style="font-size:0.8rem; color:var(--text-muted); margin-top:0;">Calendario de pagos configurado con tus fechas exactas.</p>
-        
-        <div class="grid-2"><div class="form-group"><label>Carro ($ / Día)</label><input type="number" id="carro" value="446"></div><div class="form-group"><label>Día pago</label><input type="number" id="diaCarro" value="25"></div></div>
-        <div class="grid-2"><div class="form-group"><label>Seguro Carro</label><input type="number" id="seguroCarro" value="116"></div><div class="form-group"><label>Día pago</label><input type="number" id="diaSegCarro" value="10"></div></div>
-        <div class="grid-2"><div class="form-group"><label>Gasolina</label><input type="number" id="gasolina" value="50"></div><div class="form-group"><label>Día pago</label><input type="text" value="Variable"></div></div>
-        <div class="grid-2"><div class="form-group"><label>Streaming</label><input type="number" id="streaming" value="20"></div><div class="form-group"><label>Día pago</label><input type="number" id="diaStream" value="5"></div></div>
-        <div class="grid-2"><div class="form-group"><label>Gym</label><input type="number" id="gym" value="195"></div><div class="form-group"><label>Día pago</label><input type="number" id="diaGym" value="1"></div></div>
-        <div class="grid-2"><div class="form-group"><label>Celular</label><input type="number" id="celular" value="65"></div><div class="form-group"><label>Día pago</label><input type="number" id="diaCel" value="10"></div></div>
-        <div class="grid-2"><div class="form-group"><label>Seguro Vida</label><input type="number" id="seguroVida" value="46.77"></div><div class="form-group"><label>Día pago</label><input type="number" id="diaSegVida" value="28"></div></div>
-        <div class="grid-2"><div class="form-group"><label>Salidas</label><input type="number" id="salidas" value="300"></div><div class="form-group"><label>Día pago</label><input type="text" value="Variable"></div></div>
-        <div class="grid-2"><div class="form-group"><label>Family (Var.)</label><input type="number" id="family" value="450"></div><div class="form-group"><label>Día pago</label><input type="text" value="Variable"></div></div>
-        <div class="grid-2"><div class="form-group"><label>Renta Restante</label><input type="number" id="rentaRestante" value="1000"></div><div class="form-group"><label>Día pago</label><input type="number" id="diaRenta" value="4"></div></div>
-        <div class="grid-2"><div class="form-group"><label>TC Roja</label><input type="number" id="tcRoja" value="0"></div><div class="form-group"><label>Día pago</label><input type="number" id="diaRoja" value="12"></div></div>
-        <div class="grid-2"><div class="form-group"><label>TC Gris</label><input type="number" id="tcGris" value="0"></div><div class="form-group"><label>Día pago</label><input type="number" id="diaGrisNum" value="22"></div></div>
-        
-        <button class="btn" style="background-color: #334155; margin-top: 10px;" onclick="actualizarGastos()">Guardar Cambios de Gastos</button>
+        <h2>Configuración de Gastos (Mes Actual)</h2>
+        <div class="grid-2">
+            <div class="form-group"><label>Carro (Día 25)</label><input type="number" id="carro" value="446"></div>
+            <div class="form-group"><label>Seguro Carro (Día 10)</label><input type="number" id="seguroCarro" value="116"></div>
+        </div>
+        <div class="grid-2">
+            <div class="form-group"><label>Gasolina</label><input type="number" id="gasolina" value="50"></div>
+            <div class="form-group"><label>Streaming (Día 5)</label><input type="number" id="streaming" value="20"></div>
+        </div>
+        <div class="grid-2">
+            <div class="form-group"><label>Gym (Día 1)</label><input type="number" id="gym" value="195"></div>
+            <div class="form-group"><label>Celular (Día 10)</label><input type="number" id="celular" value="65"></div>
+        </div>
+        <div class="grid-2">
+            <div class="form-group"><label>Seguro Vida (Día 28)</label><input type="number" id="seguroVida" value="46.77"></div>
+            <div class="form-group"><label>Salidas</label><input type="number" id="salidas" value="300"></div>
+        </div>
+        <div class="grid-2">
+            <div class="form-group"><label>Family (Var.)</label><input type="number" id="family" value="450"></div>
+            <div class="form-group"><label>Renta Restante (Día 4)</label><input type="number" id="rentaRestante" value="1000"></div>
+        </div>
+        <div class="grid-2">
+            <div class="form-group"><label>TC Roja (Día 12)</label><input type="number" id="tcRoja" value="0"></div>
+            <div class="form-group"><label>TC Gris (Día 22)</label><input type="number" id="tcGris" value="0"></div>
+        </div>
+        <button class="btn" style="background-color: #334155; margin-top: 5px;" onclick="actualizarGastos()">Actualizar Gastos del Mes</button>
     </div>
 </div>
 
 <script>
     let deudaActual = 10000;
     const nombresMeses = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
-    let mesIndex = 8; // Septiembre
+    let mesIndex = 8; // Septiembre 2026
     let anioActual = 2026;
 
     let semanasMes = [];
@@ -265,7 +274,7 @@
     }
 
     function actualizarGastos() {
-        alert("¡Gastos y fechas de cobro actualizados con éxito!");
+        alert("¡Gastos del mes actualizados con éxito!");
     }
 
     function procesarSemana() {
