@@ -240,7 +240,7 @@
             <div class="form-group"><label>TC Roja (Día 12)</label><input type="number" id="tcRoja" value="0"></div>
             <div class="form-group"><label>TC Gris (Día 22)</label><input type="number" id="tcGris" value="0"></div>
         </div>
-        <button class="btn" style="background-color: #334155; margin-top: 5px;" onclick="actualizarGastos()">Actualizar Gastos del Mes</button>
+        <button class="btn" style="background-color: #334155; margin-top: 5px;" onclick="guardarGastos()">Actualizar Gastos del Mes</button>
     </div>
 </div>
 
@@ -253,8 +253,38 @@
     let semanasMes = [];
     let cierresMensuales = [];
 
+    // Cargar datos guardados si existen
+    if(localStorage.getItem('finanzas_deuda')) {
+        deudaActual = parseFloat(localStorage.getItem('finanzas_deuda'));
+    }
+    if(localStorage.getItem('finanzas_semanas')) {
+        semanasMes = JSON.parse(localStorage.getItem('finanzas_semanas'));
+    }
+    if(localStorage.getItem('finanzas_cierres')) {
+        cierresMensuales = JSON.parse(localStorage.getItem('finanzas_cierres'));
+    }
+
+    // Cargar gastos guardados
+    function cargarGastos() {
+        ['carro', 'seguroCarro', 'gasolina', 'streaming', 'gym', 'celular', 'seguroVida', 'salidas', 'family', 'rentaRestante', 'tcRoja', 'tcGris'].forEach(id => {
+            if(localStorage.getItem('gasto_' + id)) {
+                document.getElementById(id).value = localStorage.getItem('gasto_' + id);
+            }
+        });
+    }
+
+    function guardarGastos() {
+        ['carro', 'seguroCarro', 'gasolina', 'streaming', 'gym', 'celular', 'seguroVida', 'salidas', 'family', 'rentaRestante', 'tcRoja', 'tcGris'].forEach(id => {
+            localStorage.setItem('gasto_' + id, document.getElementById(id).value);
+        });
+        alert("¡Gastos del mes guardados con éxito!");
+    }
+
     function actualizarCabeceraMes() {
         document.getElementById('lblMesActual').innerText = "Mes: " + nombresMeses[mesIndex] + " " + anioActual;
+        document.getElementById('lblDeuda').innerText = "$" + deudaActual.toFixed(2);
+        actualizarTablaSemanas();
+        actualizarTablaCierres();
     }
 
     function calcularTotalMensualGastos() {
@@ -271,10 +301,6 @@
         let roja = parseFloat(document.getElementById('tcRoja').value) || 0;
         let gris = parseFloat(document.getElementById('tcGris').value) || 0;
         return c + sc + gas + stream + gym + cel + sv + sal + fam + rr + roja + gris;
-    }
-
-    function actualizarGastos() {
-        alert("¡Gastos del mes actualizados con éxito!");
     }
 
     function procesarSemana() {
@@ -309,6 +335,10 @@
             gastos: totalApartadoSemanal,
             abono: abono
         });
+
+        // Guardar en localStorage
+        localStorage.setItem('finanzas_deuda', deudaActual);
+        localStorage.setItem('finanzas_semanas', JSON.stringify(semanasMes));
 
         actualizarTablaSemanas();
         document.getElementById('ingresoSemanal').value = "";
@@ -351,6 +381,7 @@
             pagadoDeuda: totalDeudaPagada
         });
 
+        localStorage.setItem('finanzas_cierres', JSON.stringify(cierresMensuales));
         actualizarTablaCierres();
 
         mesIndex++;
@@ -360,6 +391,7 @@
         }
         actualizarCabeceraMes();
         semanasMes = [];
+        localStorage.removeItem('finanzas_semanas');
         actualizarTablaSemanas();
         document.getElementById('resultadoCard').style.display = "none";
         alert("¡Mes cerrado con éxito! Se ha iniciado el registro para el siguiente mes.");
@@ -368,6 +400,10 @@
     function actualizarTablaCierres() {
         let tbody = document.getElementById('tablaCierres');
         tbody.innerHTML = "";
+        if(cierresMensuales.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--text-muted);">Sin cierres mensuales aún</td></tr>`;
+            return;
+        }
         cierresMensuales.forEach(c => {
             let tr = document.createElement('tr');
             tr.innerHTML = `
@@ -381,6 +417,7 @@
     }
 
     window.onload = function() {
+        cargarGastos();
         actualizarCabeceraMes();
     };
 </script>
