@@ -125,6 +125,8 @@
         .btn:hover { background-color: #2563eb; }
         .btn-success { background-color: var(--success); }
         .btn-success:hover { background-color: #16a34a; }
+        .btn-danger { background-color: var(--danger); font-size: 0.75rem; padding: 6px 10px; margin-left: 4px; }
+        .btn-warning { background-color: var(--warning); font-size: 0.75rem; padding: 6px 10px; }
         .grid-2 {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -161,20 +163,21 @@
 
     <!-- Registrar Ingreso de Semana -->
     <div class="card">
-        <h2>Registrar Ingreso de Semana (Viernes)</h2>
+        <h2>Registrar / Editar Ingreso de Semana</h2>
+        <input type="hidden" id="editIndex" value="-1">
         <div class="form-group">
-            <label>Etiqueta de Semana (Ej. Semana 1 / Pasada)</label>
+            <label>Etiqueta de Semana</label>
             <input type="text" id="nombreSemana" placeholder="Ej. Semana 1" value="Semana actual">
         </div>
         <div class="form-group">
             <label>Monto neto recibido ($)</label>
-            <input type="number" id="ingresoSemanal" placeholder="Ej. 1200" value="">
+            <input type="number" id="ingresoSemanal" placeholder="Ej. 1200" onfocus="this.select()" value="">
         </div>
         <div class="form-group">
             <label>Descuento renta automático de nómina</label>
             <input type="number" id="rentaNomina" value="250" readonly>
         </div>
-        <button class="btn" onclick="procesarSemana()">Registrar y Calcular Abono</button>
+        <button class="btn" id="btnProcesar" onclick="procesarSemana()">Registrar y Calcular Abono</button>
     </div>
 
     <!-- Resultados Semana Registrada -->
@@ -191,7 +194,7 @@
         <h2>Semanas Registradas este Mes</h2>
         <table>
             <thead>
-                <tr><th>Semana</th><th>Ingreso</th><th>Gastos</th><th>Abono Deuda</th></tr>
+                <tr><th>Semana</th><th>Ingreso</th><th>Abono</th><th>Acciones</th></tr>
             </thead>
             <tbody id="tablaSemanas">
                 <tr><td colspan="4" style="text-align: center; color: var(--text-muted);">Sin semanas registradas este mes</td></tr>
@@ -217,46 +220,41 @@
     <div class="card">
         <h2>Configuración de Gastos (Mes Actual)</h2>
         <div class="grid-2">
-            <div class="form-group"><label>Carro (Día 25)</label><input type="number" id="carro" value="446"></div>
-            <div class="form-group"><label>Seguro Carro (Día 10)</label><input type="number" id="seguroCarro" value="116"></div>
+            <div class="form-group"><label>Carro (Día 25)</label><input type="number" id="carro" onfocus="this.select()" value="446"></div>
+            <div class="form-group"><label>Seguro Carro (Día 10)</label><input type="number" id="seguroCarro" onfocus="this.select()" value="116"></div>
         </div>
         <div class="grid-2">
-            <div class="form-group"><label>Gasolina</label><input type="number" id="gasolina" value="50"></div>
-            <div class="form-group"><label>Streaming (Día 5)</label><input type="number" id="streaming" value="20"></div>
+            <div class="form-group"><label>Gasolina</label><input type="number" id="gasolina" onfocus="this.select()" value="50"></div>
+            <div class="form-group"><label>Streaming (Día 5)</label><input type="number" id="streaming" onfocus="this.select()" value="20"></div>
         </div>
         <div class="grid-2">
-            <div class="form-group"><label>Gym (Día 1)</label><input type="number" id="gym" value="195"></div>
-            <div class="form-group"><label>Celular (Día 10)</label><input type="number" id="celular" value="65"></div>
+            <div class="form-group"><label>Gym (Día 1)</label><input type="number" id="gym" onfocus="this.select()" value="195"></div>
+            <div class="form-group"><label>Celular (Día 10)</label><input type="number" id="celular" onfocus="this.select()" value="65"></div>
         </div>
         <div class="grid-2">
-            <div class="form-group"><label>Seguro Vida (Día 28)</label><input type="number" id="seguroVida" value="46.77"></div>
-            <div class="form-group"><label>Salidas</label><input type="number" id="salidas" value="300"></div>
+            <div class="form-group"><label>Seguro Vida (Día 28)</label><input type="number" id="seguroVida" onfocus="this.select()" value="46.77"></div>
+            <div class="form-group"><label>Salidas</label><input type="number" id="salidas" onfocus="this.select()" value="300"></div>
         </div>
         <div class="grid-2">
-            <div class="form-group"><label>Family (Var.)</label><input type="number" id="family" value="450"></div>
-            <div class="form-group"><label>Renta Restante (Día 4)</label><input type="number" id="rentaRestante" value="500"></div>
+            <div class="form-group"><label>Family (Var.)</label><input type="number" id="family" onfocus="this.select()" value="450"></div>
+            <div class="form-group"><label>Renta Restante (Día 4)</label><input type="number" id="rentaRestante" onfocus="this.select()" value="500"></div>
         </div>
         <div class="grid-2">
-            <div class="form-group"><label>TC Roja (Día 12)</label><input type="number" id="tcRoja" value="0"></div>
-            <div class="form-group"><label>TC Gris (Día 22)</label><input type="number" id="tcGris" value="0"></div>
+            <div class="form-group"><label>TC Roja (Día 12)</label><input type="number" id="tcRoja" onfocus="this.select()" value="0"></div>
+            <div class="form-group"><label>TC Gris (Día 22)</label><input type="number" id="tcGris" onfocus="this.select()" value="0"></div>
         </div>
         <button class="btn" style="background-color: #334155; margin-top: 5px;" onclick="guardarGastos()">Actualizar Gastos del Mes</button>
     </div>
 </div>
 
 <script>
-    let deudaActual = 10000;
+    let deudaInicialBase = 10000;
+    let semanasMes = [];
+    let cierresMensuales = [];
     const nombresMeses = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
     let mesIndex = 8; // Septiembre 2026
     let anioActual = 2026;
 
-    let semanasMes = [];
-    let cierresMensuales = [];
-
-    // Cargar datos guardados si existen
-    if(localStorage.getItem('finanzas_deuda')) {
-        deudaActual = parseFloat(localStorage.getItem('finanzas_deuda'));
-    }
     if(localStorage.getItem('finanzas_semanas')) {
         semanasMes = JSON.parse(localStorage.getItem('finanzas_semanas'));
     }
@@ -264,7 +262,6 @@
         cierresMensuales = JSON.parse(localStorage.getItem('finanzas_cierres'));
     }
 
-    // Cargar gastos guardados
     function cargarGastos() {
         ['carro', 'seguroCarro', 'gasolina', 'streaming', 'gym', 'celular', 'seguroVida', 'salidas', 'family', 'rentaRestante', 'tcRoja', 'tcGris'].forEach(id => {
             if(localStorage.getItem('gasto_' + id)) {
@@ -277,14 +274,8 @@
         ['carro', 'seguroCarro', 'gasolina', 'streaming', 'gym', 'celular', 'seguroVida', 'salidas', 'family', 'rentaRestante', 'tcRoja', 'tcGris'].forEach(id => {
             localStorage.setItem('gasto_' + id, document.getElementById(id).value);
         });
-        alert("¡Gastos del mes guardados con éxito!");
-    }
-
-    function actualizarCabeceraMes() {
-        document.getElementById('lblMesActual').innerText = "Mes: " + nombresMeses[mesIndex] + " " + anioActual;
-        document.getElementById('lblDeuda').innerText = "$" + deudaActual.toFixed(2);
-        actualizarTablaSemanas();
-        actualizarTablaCierres();
+        recalcularDeudaTotal();
+        alert("¡Gastos del mes guardados y deuda recalculada!");
     }
 
     function calcularTotalMensualGastos() {
@@ -303,6 +294,26 @@
         return c + sc + gas + stream + gym + cel + sv + sal + fam + rr + roja + gris;
     }
 
+    function recalcularDeudaTotal() {
+        let deudaTemp = deudaInicialBase;
+        let nominaRenta = parseFloat(document.getElementById('rentaNomina').value) || 0;
+        let totalMensual = calcularTotalMensualGastos();
+        let gastoSemanalEstimado = totalMensual / 4;
+        let totalApartadoSemanal = gastoSemanalEstimado + nominaRenta;
+
+        semanasMes.forEach(s => {
+            let abono = s.ingreso - totalApartadoSemanal;
+            if(abono < 0) abono = 0;
+            s.gastos = totalApartadoSemanal;
+            s.abono = abono;
+            deudaTemp -= abono;
+        });
+
+        if(deudaTemp < 0) deudaTemp = 0;
+        document.getElementById('lblDeuda').innerText = "$" + deudaTemp.toFixed(2);
+        localStorage.setItem('finanzas_semanas', JSON.stringify(semanasMes));
+    }
+
     function procesarSemana() {
         let nombreSem = document.getElementById('nombreSemana').value || "Semana";
         let ingreso = parseFloat(document.getElementById('ingresoSemanal').value) || 0;
@@ -319,30 +330,53 @@
         let abono = ingreso - totalApartadoSemanal;
         if (abono < 0) abono = 0;
 
-        deudaActual -= abono;
-        if (deudaActual < 0) deudaActual = 0;
+        let editIndex = parseInt(document.getElementById('editIndex').value);
 
-        document.getElementById('lblDeuda').innerText = "$" + deudaActual.toFixed(2);
+        if(editIndex >= 0) {
+            semanasMes[editIndex].nombre = nombreSem;
+            semanasMes[editIndex].ingreso = ingreso;
+            semanasMes[editIndex].gastos = totalApartadoSemanal;
+            semanasMes[editIndex].abono = abono;
+            document.getElementById('editIndex').value = -1;
+            document.getElementById('btnProcesar').innerText = "Registrar y Calcular Abono";
+        } else {
+            semanasMes.push({
+                nombre: nombreSem,
+                ingreso: ingreso,
+                gastos: totalApartadoSemanal,
+                abono: abono
+            });
+        }
+
+        recalcularDeudaTotal();
+
         document.getElementById('resNombre').innerText = nombreSem;
         document.getElementById('resIngreso').innerText = "$" + ingreso.toFixed(2);
         document.getElementById('resGastos').innerText = "$" + totalApartadoSemanal.toFixed(2);
         document.getElementById('resAbono').innerText = "$" + abono.toFixed(2);
         document.getElementById('resultadoCard').style.display = "block";
 
-        semanasMes.push({
-            nombre: nombreSem,
-            ingreso: ingreso,
-            gastos: totalApartadoSemanal,
-            abono: abono
-        });
-
-        // Guardar en localStorage
-        localStorage.setItem('finanzas_deuda', deudaActual);
-        localStorage.setItem('finanzas_semanas', JSON.stringify(semanasMes));
-
         actualizarTablaSemanas();
         document.getElementById('ingresoSemanal').value = "";
         document.getElementById('nombreSemana').value = "Siguiente semana";
+    }
+
+    function editarSemana(index) {
+        let s = semanasMes[index];
+        document.getElementById('nombreSemana').value = s.nombre;
+        document.getElementById('ingresoSemanal').value = s.ingreso;
+        document.getElementById('editIndex').value = index;
+        document.getElementById('btnProcesar').innerText = "Actualizar Semana";
+        window.scrollTo({top: 0, behavior: 'smooth'});
+    }
+
+    function eliminarSemana(index) {
+        if(confirm("¿Estás seguro de eliminar esta semana?")) {
+            semanasMes.splice(index, 1);
+            recalcularDeudaTotal();
+            actualizarTablaSemanas();
+            document.getElementById('resultadoCard').style.display = "none";
+        }
     }
 
     function actualizarTablaSemanas() {
@@ -352,13 +386,16 @@
             tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--text-muted);">Sin semanas registradas este mes</td></tr>`;
             return;
         }
-        semanasMes.forEach(s => {
+        semanasMes.forEach((s, idx) => {
             let tr = document.createElement('tr');
             tr.innerHTML = `
                 <td><strong>${s.nombre}</strong></td>
                 <td>$${s.ingreso.toFixed(2)}</td>
-                <td>$${s.gastos.toFixed(2)}</td>
                 <td style="color: var(--success); font-weight: bold;">$${s.abono.toFixed(2)}</td>
+                <td>
+                    <button class="btn-warning" onclick="editarSemana(${idx})">Editar</button>
+                    <button class="btn-danger" onclick="eliminarSemana(${idx})">X</button>
+                </td>
             `;
             tbody.appendChild(tr);
         });
@@ -389,7 +426,7 @@
             mesIndex = 0;
             anioActual++;
         }
-        actualizarCabeceraMes();
+        document.getElementById('lblMesActual').innerText = "Mes: " + nombresMeses[mesIndex] + " " + anioActual;
         semanasMes = [];
         localStorage.removeItem('finanzas_semanas');
         actualizarTablaSemanas();
@@ -418,7 +455,10 @@
 
     window.onload = function() {
         cargarGastos();
-        actualizarCabeceraMes();
+        recalcularDeudaTotal();
+        document.getElementById('lblMesActual').innerText = "Mes: " + nombresMeses[mesIndex] + " " + anioActual;
+        actualizarTablaSemanas();
+        actualizarTablaCierres();
     };
 </script>
 
