@@ -76,7 +76,7 @@
             color: var(--text-muted);
             margin-bottom: 6px;
         }
-        input {
+        input, select {
             width: 100%;
             background-color: #0f172a;
             border: 1px solid var(--border);
@@ -88,7 +88,7 @@
             outline: none;
             transition: border-color 0.2s;
         }
-        input:focus {
+        input:focus, select:focus {
             border-color: var(--primary);
         }
         .metric-row {
@@ -150,7 +150,7 @@
     <header>
         <h1>Finanzas Diego PRO</h1>
         <div class="badge-mes" id="lblMesActual">Mes: Septiembre 2026</div>
-        <p>Control Semanal y Cierre Mensual de Deuda</p>
+        <p>Control Semanal, Fechas de Gastos y Cierre de Deuda</p>
     </header>
 
     <!-- Estado de Deuda -->
@@ -159,34 +159,39 @@
         <div class="metric-value danger" id="lblDeuda">$10,000.00</div>
     </div>
 
-    <!-- Ingreso y Procesamiento Semanal -->
+    <!-- Registrar Ingreso Actual o Pasado del Mes -->
     <div class="card">
-        <h2>Registrar Ingreso del Viernes</h2>
+        <h2>Registrar Ingreso de Semana (Viernes)</h2>
         <div class="form-group">
-            <label>Monto neto recibido este viernes ($)</label>
+            <label>Etiqueta de Semana (Ej. Semana 1 / Pasada)</label>
+            <input type="text" id="nombreSemana" placeholder="Ej. Semana 1 (Pasada)" value="Semana actual">
+        </div>
+        <div class="form-group">
+            <label>Monto neto recibido ($)</label>
             <input type="number" id="ingresoSemanal" placeholder="Ej. 1200" value="">
         </div>
         <div class="form-group">
             <label>Descuento renta automático de nómina</label>
             <input type="number" id="rentaNomina" value="250" readonly>
         </div>
-        <button class="btn" onclick="procesarSemana()">Registrar Semana y Calcular Abono</button>
+        <button class="btn" onclick="procesarSemana()">Registrar y Calcular Abono</button>
     </div>
 
-    <!-- Resultados Semana Actual -->
+    <!-- Resultados Semana Registrada -->
     <div class="card" id="resultadoCard" style="display:none; border-left: 4px solid var(--success);">
-        <h2>Último Viernes Registrado</h2>
+        <h2>Último Registro Procesado</h2>
+        <div class="metric-row"><span class="metric-label">Semana:</span><span class="metric-value primary" id="resNombre">-</span></div>
         <div class="metric-row"><span class="metric-label">Ingreso Neto:</span><span class="metric-value primary" id="resIngreso">$0.00</span></div>
         <div class="metric-row"><span class="metric-label">Apartado Gastos/Renta:</span><span class="metric-value warning" id="resGastos">$0.00</span></div>
         <div class="metric-row"><span class="metric-label">¡Abono a Deuda!:</span><span class="metric-value success" id="resAbono">$0.00</span></div>
     </div>
 
-    <!-- Historial de Semanas del Mes -->
+    <!-- Semanas Registradas en el Mes -->
     <div class="card">
-        <h2>Semanas Registradas en el Mes</h2>
+        <h2>Semanas Registradas este Mes</h2>
         <table>
             <thead>
-                <tr><th>Sem.</th><th>Ingreso</th><th>Gastos/Renta</th><th>Abono Deuda</th></tr>
+                <tr><th>Semana</th><th>Ingreso</th><th>Gastos</th><th>Abono Deuda</th></tr>
             </thead>
             <tbody id="tablaSemanas">
                 <tr><td colspan="4" style="text-align: center; color: var(--text-muted);">Sin semanas registradas este mes</td></tr>
@@ -195,12 +200,12 @@
         <button class="btn btn-success" style="margin-top: 15px;" onclick="cerrarMes()">Cerrar Mes Actual e Iniciar Siguiente</button>
     </div>
 
-    <!-- Resumen del Historial de Cierres Mensuales -->
+    <!-- Historial de Cierres Mensuales -->
     <div class="card">
         <h2>Historial de Cierres Mensuales</h2>
         <table>
             <thead>
-                <tr><th>Mes</th><th>Total Ganado</th><th>Total Gastado</th><th>Total Deuda Pagada</th></tr>
+                <tr><th>Mes</th><th>Ganado</th><th>Gastado</th><th>Deuda Pagada</th></tr>
             </thead>
             <tbody id="tablaCierres">
                 <tr><td colspan="4" style="text-align: center; color: var(--text-muted);">Sin cierres mensuales aún</td></tr>
@@ -208,43 +213,33 @@
         </table>
     </div>
 
-    <!-- Configuración Mensual de Gastos -->
+    <!-- Configuración de Gastos y Fechas de Cobro -->
     <div class="card">
-        <h2>Configuración de Gastos (Mes Actual)</h2>
-        <div class="grid-2">
-            <div class="form-group"><label>Carro</label><input type="number" id="carro" value="446"></div>
-            <div class="form-group"><label>Seguro Carro</label><input type="number" id="seguroCarro" value="116"></div>
-        </div>
-        <div class="grid-2">
-            <div class="form-group"><label>Gasolina</label><input type="number" id="gasolina" value="50"></div>
-            <div class="form-group"><label>Streaming</label><input type="number" id="streaming" value="20"></div>
-        </div>
-        <div class="grid-2">
-            <div class="form-group"><label>Gym</label><input type="number" id="gym" value="195"></div>
-            <div class="form-group"><label>Celular</label><input type="number" id="celular" value="65"></div>
-        </div>
-        <div class="grid-2">
-            <div class="form-group"><label>Seguro Vida</label><input type="number" id="seguroVida" value="46.77"></div>
-            <div class="form-group"><label>Salidas</label><input type="number" id="salidas" value="300"></div>
-        </div>
-        <div class="grid-2">
-            <div class="form-group"><label>Family (Var.)</label><input type="number" id="family" value="450"></div>
-            <div class="form-group"><label>Renta Restante</label><input type="number" id="rentaRestante" value="1000"></div>
-        </div>
-        <div class="grid-2">
-            <div class="form-group"><label>TC Roja</label><input type="number" id="tcRoja" value="0"></div>
-            <div class="form-group"><label>TC Gris</label><input type="number" id="tcGris" value="0"></div>
-        </div>
-        <button class="btn" style="background-color: #334155; margin-top: 5px;" onclick="actualizarGastos()">Actualizar Gastos del Mes</button>
+        <h2>Gastos y Días de Cobro (Mes Actual)</h2>
+        <p style="font-size:0.8rem; color:var(--text-muted); margin-top:0;">Calendario de pagos configurado con tus fechas exactas.</p>
+        
+        <div class="grid-2"><div class="form-group"><label>Carro ($ / Día)</label><input type="number" id="carro" value="446"></div><div class="form-group"><label>Día pago</label><input type="number" id="diaCarro" value="25"></div></div>
+        <div class="grid-2"><div class="form-group"><label>Seguro Carro</label><input type="number" id="seguroCarro" value="116"></div><div class="form-group"><label>Día pago</label><input type="number" id="diaSegCarro" value="10"></div></div>
+        <div class="grid-2"><div class="form-group"><label>Gasolina</label><input type="number" id="gasolina" value="50"></div><div class="form-group"><label>Día pago</label><input type="text" value="Variable"></div></div>
+        <div class="grid-2"><div class="form-group"><label>Streaming</label><input type="number" id="streaming" value="20"></div><div class="form-group"><label>Día pago</label><input type="number" id="diaStream" value="5"></div></div>
+        <div class="grid-2"><div class="form-group"><label>Gym</label><input type="number" id="gym" value="195"></div><div class="form-group"><label>Día pago</label><input type="number" id="diaGym" value="1"></div></div>
+        <div class="grid-2"><div class="form-group"><label>Celular</label><input type="number" id="celular" value="65"></div><div class="form-group"><label>Día pago</label><input type="number" id="diaCel" value="10"></div></div>
+        <div class="grid-2"><div class="form-group"><label>Seguro Vida</label><input type="number" id="seguroVida" value="46.77"></div><div class="form-group"><label>Día pago</label><input type="number" id="diaSegVida" value="28"></div></div>
+        <div class="grid-2"><div class="form-group"><label>Salidas</label><input type="number" id="salidas" value="300"></div><div class="form-group"><label>Día pago</label><input type="text" value="Variable"></div></div>
+        <div class="grid-2"><div class="form-group"><label>Family (Var.)</label><input type="number" id="family" value="450"></div><div class="form-group"><label>Día pago</label><input type="text" value="Variable"></div></div>
+        <div class="grid-2"><div class="form-group"><label>Renta Restante</label><input type="number" id="rentaRestante" value="1000"></div><div class="form-group"><label>Día pago</label><input type="number" id="diaRenta" value="4"></div></div>
+        <div class="grid-2"><div class="form-group"><label>TC Roja</label><input type="number" id="tcRoja" value="0"></div><div class="form-group"><label>Día pago</label><input type="number" id="diaRoja" value="12"></div></div>
+        <div class="grid-2"><div class="form-group"><label>TC Gris</label><input type="number" id="tcGris" value="0"></div><div class="form-group"><label>Día pago</label><input type="number" id="diaGrisNum" value="22"></div></div>
+        
+        <button class="btn" style="background-color: #334155; margin-top: 10px;" onclick="actualizarGastos()">Guardar Cambios de Gastos</button>
     </div>
 </div>
 
 <script>
     let deudaActual = 10000;
     const nombresMeses = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
-    let fechaActual = new Date(2026, 8, 22); // Septiembre 2026
-    let mesIndex = fechaActual.getMonth(); 
-    let anioActual = fechaActual.getFullYear(); 
+    let mesIndex = 8; // Septiembre
+    let anioActual = 2026;
 
     let semanasMes = [];
     let cierresMensuales = [];
@@ -270,13 +265,14 @@
     }
 
     function actualizarGastos() {
-        alert("¡Gastos del mes actualizados con éxito!");
+        alert("¡Gastos y fechas de cobro actualizados con éxito!");
     }
 
     function procesarSemana() {
+        let nombreSem = document.getElementById('nombreSemana').value || "Semana";
         let ingreso = parseFloat(document.getElementById('ingresoSemanal').value) || 0;
         if(ingreso <= 0) {
-            alert("Por favor ingresa un monto válido recibido este viernes.");
+            alert("Por favor ingresa un monto válido recibido.");
             return;
         }
 
@@ -292,12 +288,14 @@
         if (deudaActual < 0) deudaActual = 0;
 
         document.getElementById('lblDeuda').innerText = "$" + deudaActual.toFixed(2);
+        document.getElementById('resNombre').innerText = nombreSem;
         document.getElementById('resIngreso').innerText = "$" + ingreso.toFixed(2);
         document.getElementById('resGastos').innerText = "$" + totalApartadoSemanal.toFixed(2);
         document.getElementById('resAbono').innerText = "$" + abono.toFixed(2);
         document.getElementById('resultadoCard').style.display = "block";
 
         semanasMes.push({
+            nombre: nombreSem,
             ingreso: ingreso,
             gastos: totalApartadoSemanal,
             abono: abono
@@ -305,6 +303,7 @@
 
         actualizarTablaSemanas();
         document.getElementById('ingresoSemanal').value = "";
+        document.getElementById('nombreSemana').value = "Siguiente semana";
     }
 
     function actualizarTablaSemanas() {
@@ -314,10 +313,10 @@
             tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--text-muted);">Sin semanas registradas este mes</td></tr>`;
             return;
         }
-        semanasMes.forEach((s, idx) => {
+        semanasMes.forEach(s => {
             let tr = document.createElement('tr');
             tr.innerHTML = `
-                <td>S${idx + 1}</td>
+                <td><strong>${s.nombre}</strong></td>
                 <td>$${s.ingreso.toFixed(2)}</td>
                 <td>$${s.gastos.toFixed(2)}</td>
                 <td style="color: var(--success); font-weight: bold;">$${s.abono.toFixed(2)}</td>
