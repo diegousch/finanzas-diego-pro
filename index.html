@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Finanzas Diego PRO - Control de Deuda</title>
+    <style>
+        :root {
+            --bg-dark: #0f172a;
+            --card-bg: #1e293b;
+            --primary: #3b82f6;
+            --success: #22c55e;
+            --danger: #ef4444;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --border: #334155;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        header {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+        header h1 {
+            color: var(--text-main);
+            margin: 0 0 5px 0;
+            font-size: 1.6rem;
+        }
+        header p {
+            color: var(--text-muted);
+            margin: 0;
+            font-size: 0.9rem;
+        }
+        .card {
+            background-color: var(--card-bg);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--border);
+        }
+        .card h2 {
+            font-size: 1rem;
+            color: var(--text-muted);
+            margin-top: 0;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+        }
+        input {
+            width: 100%;
+            background-color: #0f172a;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            color: var(--text-main);
+            padding: 12px;
+            font-size: 1.1rem;
+            box-sizing: border-box;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        input:focus {
+            border-color: var(--primary);
+        }
+        .metric-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 10px;
+        }
+        .metric-label {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+        .metric-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+        .metric-value.success { color: var(--success); }
+        .metric-value.danger { color: var(--danger); }
+        .metric-value.primary { color: var(--primary); }
+        .btn {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            width: 100%;
+            padding: 14px;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .btn:hover {
+            background-color: #2563eb;
+        }
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>Finanzas Diego PRO</h1>
+        <p>Control Semanal y Reducción de Deuda</p>
+    </header>
+
+    <!-- Estado de Deuda -->
+    <div class="card" style="border-left: 4px solid var(--danger);">
+        <h2>Deuda Objetivo Actual</h2>
+        <div class="metric-value danger" id="lblDeuda">$10,000.00</div>
+    </div>
+
+    <!-- Ingreso y Procesamiento -->
+    <div class="card">
+        <h2>Ingreso del Viernes</h2>
+        <div class="form-group">
+            <label>Pago semanal neto recibido ($)</label>
+            <input type="number" id="ingresoSemanal" value="1200">
+        </div>
+        <div class="form-group">
+            <label>Descuento renta automático (Nómina)</label>
+            <input type="number" id="rentaNomina" value="250" readonly>
+        </div>
+        <button class="btn" onclick="procesarSemana()">Procesar y Abonar a Deuda</button>
+    </div>
+
+    <!-- Configuración Mensual de Gastos -->
+    <div class="card">
+        <h2>Gastos y Tarjetas (Mes Actual)</h2>
+        <div class="grid-2">
+            <div class="form-group"><label>Carro</label><input type="number" id="carro" value="446"></div>
+            <div class="form-group"><label>Seguro Carro</label><input type="number" id="seguroCarro" value="116"></div>
+        </div>
+        <div class="grid-2">
+            <div class="form-group"><label>Gasolina</label><input type="number" id="gasolina" value="50"></div>
+            <div class="form-group"><label>Streaming</label><input type="number" id="streaming" value="20"></div>
+        </div>
+        <div class="grid-2">
+            <div class="form-group"><label>Gym</label><input type="number" id="gym" value="195"></div>
+            <div class="form-group"><label>Celular</label><input type="number" id="celular" value="65"></div>
+        </div>
+        <div class="grid-2">
+            <div class="form-group"><label>Seguro Vida</label><input type="number" id="seguroVida" value="46.77"></div>
+            <div class="form-group"><label>Salidas</label><input type="number" id="salidas" value="300"></div>
+        </div>
+        <div class="grid-2">
+            <div class="form-group"><label>Family (Var.)</label><input type="number" id="family" value="450"></div>
+            <div class="form-group"><label>Renta Restante</label><input type="number" id="rentaRestante" value="1000"></div>
+        </div>
+        <div class="grid-2">
+            <div class="form-group"><label>TC Roja</label><input type="number" id="tcRoja" value="0"></div>
+            <div class="form-group"><label>TC Gris</label><input type="number" id="tcGris" value="0"></div>
+        </div>
+        <button class="btn" style="background-color: #334155; margin-top: 5px;" onclick="actualizarGastos()">Actualizar Gastos Mensuales</button>
+    </div>
+
+    <!-- Resultados del Cálculo -->
+    <div class="card" id="resultadoCard" style="display:none; border-left: 4px solid var(--success);">
+        <h2>Resultado de la Semana</h2>
+        <div class="metric-row">
+            <span class="metric-label">Apartado Gastos/Renta:</span>
+            <span class="metric-value primary" id="lblGastosSemana">$0.00</span>
+        </div>
+        <div class="metric-row" style="margin-top: 10px;">
+            <span class="metric-label">¡Abono directo a Deuda!:</span>
+            <span class="metric-value success" id="lblAbonoDeuda">$0.00</span>
+        </div>
+    </div>
+</div>
+
+<script>
+    let deudaActual = 10000;
+
+    function calcularTotalMensual() {
+        let c = parseFloat(document.getElementById('carro').value) || 0;
+        let sc = parseFloat(document.getElementById('seguroCarro').value) || 0;
+        let gas = parseFloat(document.getElementById('gasolina').value) || 0;
+        let stream = parseFloat(document.getElementById('streaming').value) || 0;
+        let gym = parseFloat(document.getElementById('gym').value) || 0;
+        let cel = parseFloat(document.getElementById('celular').value) || 0;
+        let sv = parseFloat(document.getElementById('seguroVida').value) || 0;
+        let sal = parseFloat(document.getElementById('salidas').value) || 0;
+        let fam = parseFloat(document.getElementById('family').value) || 0;
+        let rr = parseFloat(document.getElementById('rentaRestante').value) || 0;
+        let roja = parseFloat(document.getElementById('tcRoja').value) || 0;
+        let gris = parseFloat(document.getElementById('tcGris').value) || 0;
+
+        return c + sc + gas + stream + gym + cel + sv + sal + fam + rr + roja + gris;
+    }
+
+    function actualizarGastos() {
+        alert("¡Gastos mensuales actualizados con éxito!");
+    }
+
+    function procesarSemana() {
+        let ingreso = parseFloat(document.getElementById('ingresoSemanal').value) || 0;
+        let nominaRenta = parseFloat(document.getElementById('rentaNomina').value) || 0;
+        let totalMensual = calcularTotalMensual();
+        let gastoSemanalEstimado = totalMensual / 4;
+
+        // Lo que se aparta por semana para cubrir gastos + los 250 de nómina de la renta
+        let totalApartadoSemanal = gastoSemanalEstimado + nominaRenta;
+
+        // El resto va directo a la deuda
+        let abono = ingreso - totalApartadoSemanal;
+        if (abono < 0) abono = 0;
+
+        deudaActual -= abono;
+        if (deudaActual < 0) deudaActual = 0;
+
+        // Actualizar UI
+        document.getElementById('lblDeuda.innerText') // keep clean
+        document.getElementById('lblDeuda').innerText = "$" + deudaActual.toFixed(2);
+        document.getElementById('lblGastosSemana').innerText = "$" + totalApartadoSemanal.toFixed(2);
+        document.getElementById('lblAbonoDeuda').innerText = "$" + abono.toFixed(2);
+        document.getElementById('resultadoCard').style.display = "block";
+    }
+</script>
+
+</body>
+</html>
