@@ -128,7 +128,6 @@
         .btn-danger { background-color: var(--danger); font-size: 0.75rem; padding: 6px 10px; margin-left: 4px; }
         .btn-warning { background-color: var(--warning); font-size: 0.75rem; padding: 6px 10px; }
         
-        /* Estilos para la lista de gastos con checks */
         .gasto-item {
             display: flex;
             align-items: center;
@@ -303,16 +302,16 @@
     let mesIndex = fechaActualSistema.getMonth();
     let anioActual = fechaActualSistema.getFullYear();
 
-    // Estructura maestra de gastos con su día programado por defecto
+    // Plantilla actualizada con Seg. Carro ($106 el 27) y Gym ($30 el 1)
     let plantillaGastos = [
-        { id: 'gym', nombre: 'Gym', dia: 'Día 1', val: 195 },
+        { id: 'gym', nombre: 'Gym', dia: 'Día 1', val: 30 },
         { id: 'rentaRestante', nombre: 'Renta Restante', dia: 'Día 4', val: 500 },
         { id: 'streaming', nombre: 'Streaming', dia: 'Día 5', val: 20 },
-        { id: 'seguroCarro', nombre: 'Seguro Carro', dia: 'Día 10', val: 116 },
         { id: 'celular', nombre: 'Celular', dia: 'Día 10', val: 65 },
         { id: 'tcRoja', nombre: 'TC Roja', dia: 'Día 12', val: 0 },
         { id: 'tcGris', nombre: 'TC Gris', dia: 'Día 22', val: 0 },
         { id: 'carro', nombre: 'Carro', dia: 'Día 25', val: 446 },
+        { id: 'seguroCarro', nombre: 'Seguro Carro', dia: 'Día 27', val: 106 },
         { id: 'seguroVida', nombre: 'Seguro Vida', dia: 'Día 28', val: 46.77 },
         { id: 'gasolina', nombre: 'Gasolina', dia: 'Variable', val: 50 },
         { id: 'salidas', nombre: 'Salidas', dia: 'Variable', val: 300 },
@@ -355,11 +354,11 @@
 
     let listaSemanasMes = obtenerSemanasLaborables(anioActual, mesIndex);
 
-    if(localStorage.getItem('finanzas_semanas_v4')) {
-        semanasMes = JSON.parse(localStorage.getItem('finanzas_semanas_v4'));
+    if(localStorage.getItem('finanzas_semanas_v5')) {
+        semanasMes = JSON.parse(localStorage.getItem('finanzas_semanas_v5'));
     }
-    if(localStorage.getItem('finanzas_cierres_v4')) {
-        cierresMensualesDetallados = JSON.parse(localStorage.getItem('finanzas_cierres_v4'));
+    if(localStorage.getItem('finanzas_cierres_v5')) {
+        cierresMensualesDetallados = JSON.parse(localStorage.getItem('finanzas_cierres_v5'));
     }
 
     function inicializarSelectSemanas() {
@@ -394,9 +393,9 @@
         contenedor.innerHTML = "";
         
         plantillaGastos.forEach(g => {
-            let savedVal = localStorage.getItem(`g_val_${g.id}`);
+            let savedVal = localStorage.getItem(`g_val_v5_${g.id}`);
             let monto = (savedVal !== null) ? parseFloat(savedVal) : g.val;
-            let pagado = localStorage.getItem(`g_pagado_${g.id}`) === 'true';
+            let pagado = localStorage.getItem(`g_pagado_v5_${g.id}`) === 'true';
 
             let div = document.createElement('div');
             div.className = `gasto-item ${pagado ? 'pagado' : ''}`;
@@ -417,7 +416,7 @@
 
     function togglePagado(id) {
         let isChecked = document.getElementById(`chk_${id}`).checked;
-        localStorage.setItem(`g_pagado_${id}`, isChecked);
+        localStorage.setItem(`g_pagado_v5_${id}`, isChecked);
         renderizarGastosChecks();
     }
 
@@ -449,7 +448,7 @@
         plantillaGastos.forEach(g => {
             let input = document.getElementById(`val_${g.id}`);
             if (input) {
-                localStorage.setItem(`g_val_${g.id}`, input.value);
+                localStorage.setItem(`g_val_v5_${g.id}`, input.value);
             }
         });
         recalcularDeudaTotal();
@@ -474,7 +473,7 @@
 
         if(deudaTemp < 0) deudaTemp = 0;
         document.getElementById('lblDeuda').innerText = "$" + deudaTemp.toFixed(2);
-        localStorage.setItem('finanzas_semanas_v4', JSON.stringify(semanasMes));
+        localStorage.setItem('finanzas_semanas_v5', JSON.stringify(semanasMes));
     }
 
     function procesarSemana() {
@@ -588,17 +587,16 @@
             semanasDetalle: [...semanasMes]
         });
 
-        localStorage.setItem('finanzas_cierres_v4', JSON.stringify(cierresMensualesDetallados));
+        localStorage.setItem('finanzas_cierres_v5', JSON.stringify(cierresMensualesDetallados));
         actualizarHistorialDetallado();
 
         semanasMes = [];
-        localStorage.removeItem('finanzas_semanas_v4');
+        localStorage.removeItem('finanzas_semanas_v5');
         actualizarTablaSemanas();
         document.getElementById('resultadoCard').style.display = "none";
 
-        // Limpiar checks de pagos del mes anterior
         plantillaGastos.forEach(g => {
-            localStorage.removeItem(`g_pagado_${g.id}`);
+            localStorage.removeItem(`g_pagado_v5_${g.id}`);
         });
 
         alert("¡Mes cerrado y guardado con éxito!");
