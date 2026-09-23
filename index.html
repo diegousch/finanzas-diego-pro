@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Finanzas Diego PRO - Control de Pagos</title>
+    <title>Finanzas Diego PRO - Persistencia Permanente</title>
     <style>
         :root {
             --bg-dark: #0f172a;
@@ -212,7 +212,7 @@
     <header>
         <h1>Finanzas Diego PRO</h1>
         <div class="badge-mes" id="lblMesActual">Cargando mes...</div>
-        <p>Control Total de Ingresos, Deuda y Pagos</p>
+        <p>Control Total con Persistencia Permanente</p>
     </header>
 
     <!-- Estado de Deuda -->
@@ -277,9 +277,7 @@
             </div>
         </div>
 
-        <div id="listaGastosChecks">
-            <!-- Se generan dinámicamente con sus checks -->
-        </div>
+        <div id="listaGastosChecks"></div>
         <button class="btn" style="background-color: #334155; margin-top: 10px;" onclick="guardarGastosYChecks()">Guardar Cambios de Gastos</button>
     </div>
 
@@ -293,30 +291,62 @@
 </div>
 
 <script>
-    let deudaInicialBase = 10000;
-    let semanasMes = [];
-    let cierresMensualesDetallados = [];
+    const STORAGE_KEY = 'finanzas_diego_pro_master';
+    
+    let db = {
+        deudaInicialBase: 10000,
+        semanasMes: [],
+        cierresMensualesDetallados: [],
+        gastosValores: {
+            gym: 30, rentaRestante: 500, streaming: 20, celular: 65,
+            tcRoja: 0, tcGris: 0, carro: 446, seguroCarro: 106,
+            seguroVida: 46.77, gasolina: 50, salidas: 300, family: 0
+        },
+        gastosPagados: {}
+    };
+
     const nombresMeses = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
     
     let fechaActualSistema = new Date();
     let mesIndex = fechaActualSistema.getMonth();
     let anioActual = fechaActualSistema.getFullYear();
 
-    // Plantilla actualizada con Seg. Carro ($106 el 27) y Gym ($30 el 1)
     let plantillaGastos = [
-        { id: 'gym', nombre: 'Gym', dia: 'Día 1', val: 30 },
-        { id: 'rentaRestante', nombre: 'Renta Restante', dia: 'Día 4', val: 500 },
-        { id: 'streaming', nombre: 'Streaming', dia: 'Día 5', val: 20 },
-        { id: 'celular', nombre: 'Celular', dia: 'Día 10', val: 65 },
-        { id: 'tcRoja', nombre: 'TC Roja', dia: 'Día 12', val: 0 },
-        { id: 'tcGris', nombre: 'TC Gris', dia: 'Día 22', val: 0 },
-        { id: 'carro', nombre: 'Carro', dia: 'Día 25', val: 446 },
-        { id: 'seguroCarro', nombre: 'Seguro Carro', dia: 'Día 27', val: 106 },
-        { id: 'seguroVida', nombre: 'Seguro Vida', dia: 'Día 28', val: 46.77 },
-        { id: 'gasolina', nombre: 'Gasolina', dia: 'Variable', val: 50 },
-        { id: 'salidas', nombre: 'Salidas', dia: 'Variable', val: 300 },
-        { id: 'family', nombre: 'Family', dia: 'Variable', val: 0 }
+        { id: 'gym', nombre: 'Gym', dia: 'Día 1' },
+        { id: 'rentaRestante', nombre: 'Renta Restante', dia: 'Día 4' },
+        { id: 'streaming', nombre: 'Streaming', dia: 'Día 5' },
+        { id: 'celular', nombre: 'Celular', dia: 'Día 10' },
+        { id: 'tcRoja', nombre: 'TC Roja', dia: 'Día 12' },
+        { id: 'tcGris', nombre: 'TC Gris', dia: 'Día 22' },
+        { id: 'carro', nombre: 'Carro', dia: 'Día 25' },
+        { id: 'seguroCarro', nombre: 'Seguro Carro', dia: 'Día 27' },
+        { id: 'seguroVida', nombre: 'Seguro Vida', dia: 'Día 28' },
+        { id: 'gasolina', nombre: 'Gasolina', dia: 'Variable' },
+        { id: 'salidas', nombre: 'Salidas', dia: 'Variable' },
+        { id: 'family', nombre: 'Family', dia: 'Variable' }
     ];
+
+    function cargarDB() {
+        let guardado = localStorage.getItem(STORAGE_KEY);
+        if (guardado) {
+            try {
+                let parsed = JSON.parse(guardado);
+                db.deudaInicialBase = parsed.deudaInicialBase !== undefined ? parsed.deudaInicialBase : 10000;
+                db.semanasMes = parsed.semanasMes || [];
+                db.cierresMensualesDetallados = parsed.cierresMensualesDetallados || [];
+                if (parsed.gastosValores) {
+                    db.gastosValores = { ...db.gastosValores, ...parsed.gastosValores };
+                }
+                db.gastosPagados = parsed.gastosPagados || {};
+            } catch(e) {
+                console.error("Error al cargar base de datos", e);
+            }
+        }
+    }
+
+    function guardarDB() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
+    }
 
     function obtenerSemanasLaborables(year, month) {
         let semanas = [];
@@ -354,13 +384,6 @@
 
     let listaSemanasMes = obtenerSemanasLaborables(anioActual, mesIndex);
 
-    if(localStorage.getItem('finanzas_semanas_v5')) {
-        semanasMes = JSON.parse(localStorage.getItem('finanzas_semanas_v5'));
-    }
-    if(localStorage.getItem('finanzas_cierres_v5')) {
-        cierresMensualesDetallados = JSON.parse(localStorage.getItem('finanzas_cierres_v5'));
-    }
-
     function inicializarSelectSemanas() {
         let select = document.getElementById('nombreSemana');
         select.innerHTML = "";
@@ -393,9 +416,8 @@
         contenedor.innerHTML = "";
         
         plantillaGastos.forEach(g => {
-            let savedVal = localStorage.getItem(`g_val_v5_${g.id}`);
-            let monto = (savedVal !== null) ? parseFloat(savedVal) : g.val;
-            let pagado = localStorage.getItem(`g_pagado_v5_${g.id}`) === 'true';
+            let monto = db.gastosValores[g.id] !== undefined ? db.gastosValores[g.id] : 0;
+            let pagado = !!db.gastosPagados[g.id];
 
             let div = document.createElement('div');
             div.className = `gasto-item ${pagado ? 'pagado' : ''}`;
@@ -416,7 +438,8 @@
 
     function togglePagado(id) {
         let isChecked = document.getElementById(`chk_${id}`).checked;
-        localStorage.setItem(`g_pagado_v5_${id}`, isChecked);
+        db.gastosPagados[id] = isChecked;
+        guardarDB();
         renderizarGastosChecks();
     }
 
@@ -426,7 +449,7 @@
 
         plantillaGastos.forEach(g => {
             let input = document.getElementById(`val_${g.id}`);
-            let val = input ? (parseFloat(input.value) || 0) : g.val;
+            let val = input ? (parseFloat(input.value) || 0) : (db.gastosValores[g.id] || 0);
             let pagado = document.getElementById(`chk_${g.id}`) ? document.getElementById(`chk_${g.id}`).checked : false;
 
             totalGeneral += val;
@@ -448,22 +471,23 @@
         plantillaGastos.forEach(g => {
             let input = document.getElementById(`val_${g.id}`);
             if (input) {
-                localStorage.setItem(`g_val_v5_${g.id}`, input.value);
+                db.gastosValores[g.id] = parseFloat(input.value) || 0;
             }
         });
         recalcularDeudaTotal();
-        alert("¡Gastos y estatus de pagos actualizados con éxito!");
+        guardarDB();
+        alert("¡Gastos y estatus de pagos guardados permanentemente!");
     }
 
     function recalcularDeudaTotal() {
-        let deudaTemp = deudaInicialBase;
+        let deudaTemp = db.deudaInicialBase;
         let totalGastos = calcularTotalesGastos();
         let numSemanasMes = listaSemanasMes.length > 0 ? listaSemanasMes.length : 4;
         let gastoSemanalBase = totalGastos / numSemanasMes;
         let nominaRenta = parseFloat(document.getElementById('rentaNomina').value) || 0;
         let totalApartadoSemanal = gastoSemanalBase + nominaRenta;
 
-        semanasMes.forEach(s => {
+        db.semanasMes.forEach(s => {
             s.gastos = totalApartadoSemanal;
             let abono = s.ingreso - totalApartadoSemanal;
             if(abono < 0) abono = 0;
@@ -473,7 +497,7 @@
 
         if(deudaTemp < 0) deudaTemp = 0;
         document.getElementById('lblDeuda').innerText = "$" + deudaTemp.toFixed(2);
-        localStorage.setItem('finanzas_semanas_v5', JSON.stringify(semanasMes));
+        guardarDB();
     }
 
     function procesarSemana() {
@@ -499,15 +523,15 @@
         let editIndex = parseInt(document.getElementById('editIndex').value);
 
         if(editIndex >= 0) {
-            semanasMes[editIndex].nombre = nombreSem;
-            semanasMes[editIndex].idSemana = idSemanaSeleccionada;
-            semanasMes[editIndex].ingreso = ingreso;
-            semanasMes[editIndex].gastos = totalApartadoSemanal;
-            semanasMes[editIndex].abono = abono;
+            db.semanasMes[editIndex].nombre = nombreSem;
+            db.semanasMes[editIndex].idSemana = idSemanaSeleccionada;
+            db.semanasMes[editIndex].ingreso = ingreso;
+            db.semanasMes[editIndex].gastos = totalApartadoSemanal;
+            db.semanasMes[editIndex].abono = abono;
             document.getElementById('editIndex').value = -1;
             document.getElementById('btnProcesar').innerText = "Registrar y Calcular Abono";
         } else {
-            semanasMes.push({
+            db.semanasMes.push({
                 nombre: nombreSem,
                 idSemana: idSemanaSeleccionada,
                 ingreso: ingreso,
@@ -530,7 +554,7 @@
     }
 
     function editarSemana(index) {
-        let s = semanasMes[index];
+        let s = db.semanasMes[index];
         document.getElementById('nombreSemana').value = s.idSemana || listaSemanasMes[0].id;
         document.getElementById('ingresoSemanal').value = s.ingreso;
         document.getElementById('editIndex').value = index;
@@ -540,7 +564,7 @@
 
     function eliminarSemana(index) {
         if(confirm("¿Estás seguro de eliminar esta semana?")) {
-            semanasMes.splice(index, 1);
+            db.semanasMes.splice(index, 1);
             recalcularDeudaTotal();
             actualizarTablaSemanas();
             document.getElementById('resultadoCard').style.display = "none";
@@ -550,11 +574,11 @@
     function actualizarTablaSemanas() {
         let tbody = document.getElementById('tablaSemanas');
         tbody.innerHTML = "";
-        if(semanasMes.length === 0) {
+        if(db.semanasMes.length === 0) {
             tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--text-muted);">Sin semanas registradas este mes</td></tr>`;
             return;
         }
-        semanasMes.forEach((s, idx) => {
+        db.semanasMes.forEach((s, idx) => {
             let tr = document.createElement('tr');
             tr.innerHTML = `
                 <td><strong>${s.nombre}</strong></td>
@@ -570,34 +594,30 @@
     }
 
     function cerrarMes() {
-        if(semanasMes.length === 0) {
+        if(db.semanasMes.length === 0) {
             alert("No hay semanas registradas en este mes para cerrar.");
             return;
         }
 
-        let totalGanado = semanasMes.reduce((acc, curr) => acc + curr.ingreso, 0);
-        let totalGastado = semanasMes.reduce((acc, curr) => acc + curr.gastos, 0);
-        let totalDeudaPagada = semanasMes.reduce((acc, curr) => acc + curr.abono, 0);
+        let totalGanado = db.semanasMes.reduce((acc, curr) => acc + curr.ingreso, 0);
+        let totalGastado = db.semanasMes.reduce((acc, curr) => acc + curr.gastos, 0);
+        let totalDeudaPagada = db.semanasMes.reduce((acc, curr) => acc + curr.abono, 0);
 
-        cierresMensualesDetallados.push({
+        db.cierresMensualesDetallados.push({
             mesNombre: nombresMeses[mesIndex] + " " + anioActual,
             totalGanado: totalGanado,
             totalGastado: totalGastado,
             totalDeudaPagada: totalDeudaPagada,
-            semanasDetalle: [...semanasMes]
+            semanasDetalle: [...db.semanasMes]
         });
 
-        localStorage.setItem('finanzas_cierres_v5', JSON.stringify(cierresMensualesDetallados));
-        actualizarHistorialDetallado();
+        db.semanasMes = [];
+        db.gastosPagados = {};
+        guardarDB();
 
-        semanasMes = [];
-        localStorage.removeItem('finanzas_semanas_v5');
         actualizarTablaSemanas();
+        actualizarHistorialDetallado();
         document.getElementById('resultadoCard').style.display = "none";
-
-        plantillaGastos.forEach(g => {
-            localStorage.removeItem(`g_pagado_v5_${g.id}`);
-        });
 
         alert("¡Mes cerrado y guardado con éxito!");
         
@@ -618,12 +638,12 @@
         let contenedor = document.getElementById('contenedorHistorialDetallado');
         contenedor.innerHTML = "";
         
-        if(cierresMensualesDetallados.length === 0) {
+        if(db.cierresMensualesDetallados.length === 0) {
             contenedor.innerHTML = `<p style="text-align: center; color: var(--text-muted);">Sin cierres mensuales guardados aún.</p>`;
             return;
         }
 
-        cierresMensualesDetallados.forEach((c) => {
+        db.cierresMensualesDetallados.forEach((c) => {
             let divMes = document.createElement('div');
             divMes.className = "mes-historial-card";
             
@@ -660,6 +680,7 @@
     }
 
     window.onload = function() {
+        cargarDB();
         document.getElementById('lblMesActual').innerText = `Mes: ${nombresMeses[mesIndex]} ${anioActual}`;
         inicializarSelectSemanas();
         renderizarGastosChecks();
