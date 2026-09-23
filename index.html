@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Finanzas Diego PRO - Semanas Perfectas</title>
+    <title>Finanzas Diego PRO - Control de Pagos</title>
     <style>
         :root {
             --bg-dark: #0f172a;
@@ -127,11 +127,57 @@
         .btn-success:hover { background-color: #16a34a; }
         .btn-danger { background-color: var(--danger); font-size: 0.75rem; padding: 6px 10px; margin-left: 4px; }
         .btn-warning { background-color: var(--warning); font-size: 0.75rem; padding: 6px 10px; }
-        .grid-2 {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
+        
+        /* Estilos para la lista de gastos con checks */
+        .gasto-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #0f172a;
+            border: 1px solid var(--border);
+            padding: 10px 12px;
+            border-radius: 10px;
+            margin-bottom: 10px;
         }
+        .gasto-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex: 1;
+        }
+        .gasto-info input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            accent-color: var(--success);
+            cursor: pointer;
+        }
+        .gasto-details {
+            display: flex;
+            flex-direction: column;
+        }
+        .gasto-name {
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+        .gasto-date {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+        .gasto-item input[type="number"] {
+            width: 90px;
+            padding: 6px;
+            font-size: 1rem;
+            text-align: right;
+        }
+        .gasto-item.pagado {
+            border-color: var(--success);
+            opacity: 0.8;
+        }
+        .gasto-item.pagado .gasto-name {
+            text-decoration: line-through;
+            color: var(--success);
+        }
+
         table {
             width: 100%;
             border-collapse: collapse;
@@ -167,7 +213,7 @@
     <header>
         <h1>Finanzas Diego PRO</h1>
         <div class="badge-mes" id="lblMesActual">Cargando mes...</div>
-        <p>Gestión de Semanas Laborables Inteligentes</p>
+        <p>Control Total de Ingresos, Deuda y Pagos</p>
     </header>
 
     <!-- Estado de Deuda -->
@@ -182,9 +228,7 @@
         <input type="hidden" id="editIndex" value="-1">
         <div class="form-group">
             <label>Selecciona la Semana (Lunes a Viernes)</label>
-            <select id="nombreSemana">
-                <!-- Se llenará dinámicamente -->
-            </select>
+            <select id="nombreSemana"></select>
         </div>
         <div class="form-group">
             <label>Monto neto recibido ($)</label>
@@ -220,42 +264,32 @@
         <button class="btn btn-success" style="margin-top: 15px;" onclick="cerrarMes()">Cerrar Mes Actual e Iniciar Siguiente</button>
     </div>
 
+    <!-- Control de Gastos del Mes con Checks -->
+    <div class="card">
+        <h2>Control de Pagos del Mes</h2>
+        <div class="metric-row" style="margin-bottom: 15px; background: #0f172a; padding: 10px; border-radius: 10px; border: 1px solid var(--border);">
+            <div>
+                <span class="metric-label" style="display: block;">Total Gastos: <strong id="lblTotalGastos">$0.00</strong></span>
+                <span class="metric-label" style="display: block; color: var(--success); margin-top: 3px;">Pagado Real: <strong id="lblTotalPagado">$0.00</strong></span>
+            </div>
+            <div style="text-align: right;">
+                <span class="metric-label" style="display: block;">Pendiente por Pagar:</span>
+                <span class="metric-value warning" id="lblPendientePagos" style="font-size: 1.1rem;">$0.00</span>
+            </div>
+        </div>
+
+        <div id="listaGastosChecks">
+            <!-- Se generan dinámicamente con sus checks -->
+        </div>
+        <button class="btn" style="background-color: #334155; margin-top: 10px;" onclick="guardarGastosYChecks()">Guardar Cambios de Gastos</button>
+    </div>
+
     <!-- Historial Detallado de Cierres Mensuales -->
     <div class="card">
         <h2>Historial Detallado de Meses</h2>
         <div id="contenedorHistorialDetallado">
             <p style="text-align: center; color: var(--text-muted);">Sin cierres mensuales guardados aún.</p>
         </div>
-    </div>
-
-    <!-- Configuración de Gastos del Mes -->
-    <div class="card">
-        <h2>Configuración de Gastos (Mes Actual)</h2>
-        <div class="grid-2">
-            <div class="form-group"><label>Carro (Día 25)</label><input type="number" id="carro" onfocus="this.select()" value="446"></div>
-            <div class="form-group"><label>Seguro Carro (Día 10)</label><input type="number" id="seguroCarro" onfocus="this.select()" value="116"></div>
-        </div>
-        <div class="grid-2">
-            <div class="form-group"><label>Gasolina</label><input type="number" id="gasolina" onfocus="this.select()" value="50"></div>
-            <div class="form-group"><label>Streaming (Día 5)</label><input type="number" id="streaming" onfocus="this.select()" value="20"></div>
-        </div>
-        <div class="grid-2">
-            <div class="form-group"><label>Gym (Día 1)</label><input type="number" id="gym" onfocus="this.select()" value="195"></div>
-            <div class="form-group"><label>Celular (Día 10)</label><input type="number" id="celular" onfocus="this.select()" value="65"></div>
-        </div>
-        <div class="grid-2">
-            <div class="form-group"><label>Seguro Vida (Día 28)</label><input type="number" id="seguroVida" onfocus="this.select()" value="46.77"></div>
-            <div class="form-group"><label>Salidas</label><input type="number" id="salidas" onfocus="this.select()" value="300"></div>
-        </div>
-        <div class="grid-2">
-            <div class="form-group"><label>Family (Var.)</label><input type="number" id="family" onfocus="this.select()" value="0"></div>
-            <div class="form-group"><label>Renta Restante (Día 4)</label><input type="number" id="rentaRestante" onfocus="this.select()" value="500"></div>
-        </div>
-        <div class="grid-2">
-            <div class="form-group"><label>TC Roja (Día 12)</label><input type="number" id="tcRoja" onfocus="this.select()" value="0"></div>
-            <div class="form-group"><label>TC Gris (Día 22)</label><input type="number" id="tcGris" onfocus="this.select()" value="0"></div>
-        </div>
-        <button class="btn" style="background-color: #334155; margin-top: 5px;" onclick="guardarGastos()">Actualizar Gastos del Mes</button>
     </div>
 </div>
 
@@ -269,50 +303,43 @@
     let mesIndex = fechaActualSistema.getMonth();
     let anioActual = fechaActualSistema.getFullYear();
 
-    // Lógica robusta: Genera las semanas del mes basándose en los Lunes cuyo primer día esté en el mes actual.
-    // Si la última semana empieza en el mes pero termina en el siguiente mes (ej. Lunes 28 de Septiembre al Viernes 2 de Octubre), 
-    // se calcula de manera correcta y natural.
+    // Estructura maestra de gastos con su día programado por defecto
+    let plantillaGastos = [
+        { id: 'gym', nombre: 'Gym', dia: 'Día 1', val: 195 },
+        { id: 'rentaRestante', nombre: 'Renta Restante', dia: 'Día 4', val: 500 },
+        { id: 'streaming', nombre: 'Streaming', dia: 'Día 5', val: 20 },
+        { id: 'seguroCarro', nombre: 'Seguro Carro', dia: 'Día 10', val: 116 },
+        { id: 'celular', nombre: 'Celular', dia: 'Día 10', val: 65 },
+        { id: 'tcRoja', nombre: 'TC Roja', dia: 'Día 12', val: 0 },
+        { id: 'tcGris', nombre: 'TC Gris', dia: 'Día 22', val: 0 },
+        { id: 'carro', nombre: 'Carro', dia: 'Día 25', val: 446 },
+        { id: 'seguroVida', nombre: 'Seguro Vida', dia: 'Día 28', val: 46.77 },
+        { id: 'gasolina', nombre: 'Gasolina', dia: 'Variable', val: 50 },
+        { id: 'salidas', nombre: 'Salidas', dia: 'Variable', val: 300 },
+        { id: 'family', nombre: 'Family', dia: 'Variable', val: 0 }
+    ];
+
     function obtenerSemanasLaborables(year, month) {
         let semanas = [];
         let numSemana = 1;
-
-        // Empezar el día 1 del mes
         let d = new Date(year, month, 1);
-
-        // Encontrar el primer Lunes del mes (o si el mes empieza en lunes, es el día 1)
-        while (d.getDay() !== 1) {
-            d.setDate(d.getDate() + 1);
-        }
-
-        // Si ese primer lunes calculado ya pertenece al mes siguiente (ocurre si el día 1 es viernes/sábado/domingo), retrocedemos al lunes anterior que inició la primera semana de ese mes.
-        // Pero para asegurar que listamos todas las semanas cuyo Lunes pertenece al mes actual:
-        d = new Date(year, month, 1);
-        // Ajustar al primer lunes del mes o el lunes de la semana que contiene el día 1
-        let diaSemana1 = d.getDay(); // 0: Dom, 1: Lun, ..., 6: Sáb
+        let diaSemana1 = d.getDay();
         if (diaSemana1 !== 1) {
-            // Si no es lunes, retroceder al lunes de esa misma semana para que el mes empiece ordenado
             let ajuste = (diaSemana1 === 0) ? -6 : 1 - diaSemana1;
             d.setDate(d.getDate() + ajuste);
-            // Validar que si este lunes pertenece al mes anterior, avanzamos al siguiente lunes
             if(d.getMonth() !== month) {
                 d.setDate(d.getDate() + 7);
             }
         }
 
-        // Generar semanas mientras el Lunes de la semana pertenezca al mes analizado
         while (d.getMonth() === month) {
             let inicioSemanaDate = new Date(d);
             let finSemanaDate = new Date(d);
-            
-            // Avanzar 4 días para llegar al Viernes (Lunes + 4 días = Viernes)
             finSemanaDate.setDate(finSemanaDate.getDate() + 4);
 
-            let textoRango = "";
-            if (inicioSemanaDate.getMonth() === finSemanaDate.getMonth()) {
-                textoRango = `Lunes ${inicioSemanaDate.getDate()} al Viernes ${finSemanaDate.getDate()}`;
-            } else {
-                textoRango = `Lunes ${inicioSemanaDate.getDate()} de ${nombresMeses[inicioSemanaDate.getMonth()]} al Viernes ${finSemanaDate.getDate()} de ${nombresMeses[finSemanaDate.getMonth()]}`;
-            }
+            let textoRango = (inicioSemanaDate.getMonth() === finSemanaDate.getMonth()) 
+                ? `Lunes ${inicioSemanaDate.getDate()} al Viernes ${finSemanaDate.getDate()}` 
+                : `Lunes ${inicioSemanaDate.getDate()} de ${nombresMeses[inicioSemanaDate.getMonth()]} al Viernes ${finSemanaDate.getDate()} de ${nombresMeses[finSemanaDate.getMonth()]}`;
 
             semanas.push({
                 id: `Semana ${numSemana}`,
@@ -320,21 +347,19 @@
                 texto: `Semana ${numSemana} (${textoRango})`
             });
 
-            // Avanzar al siguiente lunes (sumar 7 días al lunes actual)
             d.setDate(d.getDate() + 7);
             numSemana++;
         }
-
         return semanas;
     }
 
     let listaSemanasMes = obtenerSemanasLaborables(anioActual, mesIndex);
 
-    if(localStorage.getItem('finanzas_semanas_op1_v3')) {
-        semanasMes = JSON.parse(localStorage.getItem('finanzas_semanas_op1_v3'));
+    if(localStorage.getItem('finanzas_semanas_v4')) {
+        semanasMes = JSON.parse(localStorage.getItem('finanzas_semanas_v4'));
     }
-    if(localStorage.getItem('finanzas_cierres_op1_v3')) {
-        cierresMensualesDetallados = JSON.parse(localStorage.getItem('finanzas_cierres_op1_v3'));
+    if(localStorage.getItem('finanzas_cierres_v4')) {
+        cierresMensualesDetallados = JSON.parse(localStorage.getItem('finanzas_cierres_v4'));
     }
 
     function inicializarSelectSemanas() {
@@ -352,7 +377,6 @@
     function seleccionarSemanaAutomatica() {
         let hoyTime = new Date().getTime();
         let select = document.getElementById('nombreSemana');
-        // Seleccionar la semana más cercana o actual
         let encontrada = listaSemanasMes.find((s, idx) => {
             let siguiente = listaSemanasMes[idx + 1];
             if (!siguiente) return true;
@@ -365,41 +389,76 @@
         }
     }
 
-    function cargarGastos() {
-        ['carro', 'seguroCarro', 'gasolina', 'streaming', 'gym', 'celular', 'seguroVida', 'salidas', 'family', 'rentaRestante', 'tcRoja', 'tcGris'].forEach(id => {
-            if(localStorage.getItem('gasto_op1_v3_' + id) !== null) {
-                document.getElementById(id).value = localStorage.getItem('gasto_op1_v3_' + id);
+    function renderizarGastosChecks() {
+        let contenedor = document.getElementById('listaGastosChecks');
+        contenedor.innerHTML = "";
+        
+        plantillaGastos.forEach(g => {
+            let savedVal = localStorage.getItem(`g_val_${g.id}`);
+            let monto = (savedVal !== null) ? parseFloat(savedVal) : g.val;
+            let pagado = localStorage.getItem(`g_pagado_${g.id}`) === 'true';
+
+            let div = document.createElement('div');
+            div.className = `gasto-item ${pagado ? 'pagado' : ''}`;
+            div.innerHTML = `
+                <div class="gasto-info">
+                    <input type="checkbox" id="chk_${g.id}" ${pagado ? 'checked' : ''} onchange="togglePagado('${g.id}')">
+                    <div class="gasto-details">
+                        <span class="gasto-name">${g.nombre}</span>
+                        <span class="gasto-date">${g.dia}</span>
+                    </div>
+                </div>
+                <input type="number" id="val_${g.id}" value="${monto}" onfocus="this.select()" oninput="calcularTotalesGastos()">
+            `;
+            contenedor.appendChild(div);
+        });
+        calcularTotalesGastos();
+    }
+
+    function togglePagado(id) {
+        let isChecked = document.getElementById(`chk_${id}`).checked;
+        localStorage.setItem(`g_pagado_${id}`, isChecked);
+        renderizarGastosChecks();
+    }
+
+    function calcularTotalesGastos() {
+        let totalGeneral = 0;
+        let totalPagadoReal = 0;
+
+        plantillaGastos.forEach(g => {
+            let input = document.getElementById(`val_${g.id}`);
+            let val = input ? (parseFloat(input.value) || 0) : g.val;
+            let pagado = document.getElementById(`chk_${g.id}`) ? document.getElementById(`chk_${g.id}`).checked : false;
+
+            totalGeneral += val;
+            if (pagado) {
+                totalPagadoReal += val;
             }
         });
+
+        let pendiente = totalGeneral - totalPagadoReal;
+
+        document.getElementById('lblTotalGastos').innerText = "$" + totalGeneral.toFixed(2);
+        document.getElementById('lblTotalPagado').innerText = "$" + totalPagadoReal.toFixed(2);
+        document.getElementById('lblPendientePagos').innerText = "$" + pendiente.toFixed(2);
+
+        return totalGeneral;
     }
 
-    function guardarGastos() {
-        ['carro', 'seguroCarro', 'gasolina', 'streaming', 'gym', 'celular', 'seguroVida', 'salidas', 'family', 'rentaRestante', 'tcRoja', 'tcGris'].forEach(id => {
-            localStorage.setItem('gasto_op1_v3_' + id, document.getElementById(id).value);
+    function guardarGastosYChecks() {
+        plantillaGastos.forEach(g => {
+            let input = document.getElementById(`val_${g.id}`);
+            if (input) {
+                localStorage.setItem(`g_val_${g.id}`, input.value);
+            }
         });
         recalcularDeudaTotal();
-        alert("¡Gastos del mes guardados y deuda recalculada!");
-    }
-
-    function calcularTotalMensualGastos() {
-        let c = parseFloat(document.getElementById('carro').value) || 0;
-        let sc = parseFloat(document.getElementById('seguroCarro').value) || 0;
-        let gas = parseFloat(document.getElementById('gasolina').value) || 0;
-        let stream = parseFloat(document.getElementById('streaming').value) || 0;
-        let gym = parseFloat(document.getElementById('gym').value) || 0;
-        let cel = parseFloat(document.getElementById('celular').value) || 0;
-        let sv = parseFloat(document.getElementById('seguroVida').value) || 0;
-        let sal = parseFloat(document.getElementById('salidas').value) || 0;
-        let fam = parseFloat(document.getElementById('family').value) || 0;
-        let rr = parseFloat(document.getElementById('rentaRestante').value) || 0;
-        let roja = parseFloat(document.getElementById('tcRoja').value) || 0;
-        let gris = parseFloat(document.getElementById('tcGris').value) || 0;
-        return c + sc + gas + stream + gym + cel + sv + sal + fam + rr + roja + gris;
+        alert("¡Gastos y estatus de pagos actualizados con éxito!");
     }
 
     function recalcularDeudaTotal() {
         let deudaTemp = deudaInicialBase;
-        let totalGastos = calcularTotalMensualGastos();
+        let totalGastos = calcularTotalesGastos();
         let numSemanasMes = listaSemanasMes.length > 0 ? listaSemanasMes.length : 4;
         let gastoSemanalBase = totalGastos / numSemanasMes;
         let nominaRenta = parseFloat(document.getElementById('rentaNomina').value) || 0;
@@ -415,7 +474,7 @@
 
         if(deudaTemp < 0) deudaTemp = 0;
         document.getElementById('lblDeuda').innerText = "$" + deudaTemp.toFixed(2);
-        localStorage.setItem('finanzas_semanas_op1_v3', JSON.stringify(semanasMes));
+        localStorage.setItem('finanzas_semanas_v4', JSON.stringify(semanasMes));
     }
 
     function procesarSemana() {
@@ -429,7 +488,7 @@
             return;
         }
 
-        let totalGastos = calcularTotalMensualGastos();
+        let totalGastos = calcularTotalesGastos();
         let numSemanasMes = listaSemanasMes.length > 0 ? listaSemanasMes.length : 4;
         let gastoSemanalBase = totalGastos / numSemanasMes;
         let nominaRenta = parseFloat(document.getElementById('rentaNomina').value) || 0;
@@ -529,13 +588,18 @@
             semanasDetalle: [...semanasMes]
         });
 
-        localStorage.setItem('finanzas_cierres_op1_v3', JSON.stringify(cierresMensualesDetallados));
+        localStorage.setItem('finanzas_cierres_v4', JSON.stringify(cierresMensualesDetallados));
         actualizarHistorialDetallado();
 
         semanasMes = [];
-        localStorage.removeItem('finanzas_semanas_op1_v3');
+        localStorage.removeItem('finanzas_semanas_v4');
         actualizarTablaSemanas();
         document.getElementById('resultadoCard').style.display = "none";
+
+        // Limpiar checks de pagos del mes anterior
+        plantillaGastos.forEach(g => {
+            localStorage.removeItem(`g_pagado_${g.id}`);
+        });
 
         alert("¡Mes cerrado y guardado con éxito!");
         
@@ -548,6 +612,7 @@
 
         document.getElementById('lblMesActual').innerText = `Mes: ${nombresMeses[mesIndex]} ${anioActual}`;
         inicializarSelectSemanas();
+        renderizarGastosChecks();
         recalcularDeudaTotal();
     }
 
@@ -597,9 +662,9 @@
     }
 
     window.onload = function() {
-        cargarGastos();
         document.getElementById('lblMesActual').innerText = `Mes: ${nombresMeses[mesIndex]} ${anioActual}`;
         inicializarSelectSemanas();
+        renderizarGastosChecks();
         recalcularDeudaTotal();
         actualizarTablaSemanas();
         actualizarHistorialDetallado();
