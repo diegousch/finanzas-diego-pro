@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Finanzas Diego PRO - Control Total de Pagos</title>
+    <title>Finanzas Diego PRO - Control Total con Arrastre</title>
     <style>
         :root {
             --bg-dark: #0f172a;
@@ -253,7 +253,7 @@
     <header>
         <h1>Finanzas Diego PRO</h1>
         <div class="badge-mes" id="lblMesActual">Cargando mes...</div>
-        <p>Control Total con Persistencia Permanente</p>
+        <p>Control Total con Arrastre y Persistencia</p>
     </header>
 
     <!-- Estado de Deuda -->
@@ -315,6 +315,10 @@
         <!-- Resumen Financiero del Mes -->
         <div style="margin-bottom: 15px; background: #0f172a; padding: 12px; border-radius: 10px; border: 1px solid var(--border);">
             <div class="metric-row" style="margin-top: 0; margin-bottom: 6px;">
+                <span class="metric-label">Fondo Inicial / Arrastre Mes Anterior:</span>
+                <span class="metric-value success" id="lblFondoInicial" style="font-size: 1rem;">$0.00</span>
+            </div>
+            <div class="metric-row" style="margin-top: 0; margin-bottom: 6px;">
                 <span class="metric-label">Total Ganado (Semanas):</span>
                 <span class="metric-value primary" id="lblTotalGanadoMes" style="font-size: 1.1rem;">$0.00</span>
             </div>
@@ -323,7 +327,7 @@
                 <span class="metric-value warning" id="lblTotalGastos" style="font-size: 1.1rem;">$0.00</span>
             </div>
             <div class="metric-row" style="margin-top: 0; border-top: 1px dashed var(--border); padding-top: 6px;">
-                <span class="metric-label">Balance Mes (Ganado - Gastos):</span>
+                <span class="metric-label">Balance Mes (Fondo + Ganado - Gastos):</span>
                 <span class="metric-value success" id="lblBalanceMes" style="font-size: 1.2rem;">$0.00</span>
             </div>
         </div>
@@ -387,6 +391,7 @@
         deudaInicialBase: 10000,
         semanasMes: [],
         cierresMensualesDetallados: [],
+        fondoInicialMes: 0, // Arrastre del mes anterior
         plantillaGastos: [
             { id: 'gym', nombre: 'Gym', dia: 'Día 1' },
             { id: 'rentaRestante', nombre: 'Renta Restante', dia: 'Día 4' },
@@ -423,6 +428,7 @@
                 db.deudaInicialBase = parsed.deudaInicialBase !== undefined ? parsed.deudaInicialBase : 10000;
                 db.semanasMes = parsed.semanasMes || [];
                 db.cierresMensualesDetallados = parsed.cierresMensualesDetallados || [];
+                db.fondoInicialMes = parsed.fondoInicialMes !== undefined ? parsed.fondoInicialMes : 0;
                 if (parsed.plantillaGastos) {
                     db.plantillaGastos = parsed.plantillaGastos;
                 }
@@ -558,17 +564,20 @@
         document.getElementById('lblTotalPagado').innerText = "$" + totalPagadoReal.toFixed(2);
         document.getElementById('lblPendientePagos').innerText = "$" + pendiente.toFixed(2);
 
-        // Actualizar también el balance de ingresos vs gastos
         actualizarResumenGanancias(totalGeneral);
 
         return totalGeneral;
     }
 
     function actualizarResumenGanancias(totalGastosParam) {
-        let totalGanado = db.semanasMes.reduce((acc, curr) => acc + curr.ingreso, 0);
-        let balance = totalGanado - totalGastosParam;
+        let totalGanadoSemanas = db.semanasMes.reduce((acc, curr) => acc + curr.ingreso, 0);
+        let fondoInicial = db.fondoInicialMes || 0;
+        let totalIngresosGeneral = fondoInicial + totalGanadoSemanas;
+        let balance = totalIngresosGeneral - totalGastosParam;
 
-        document.getElementById('lblTotalGanadoMes').innerText = "$" + totalGanado.toFixed(2);
+        document.getElementById('lblFondoInicial').innerText = "$" + fondoInicial.toFixed(2);
+        document.getElementById('lblTotalGanadoMes').innerText = "$" + totalGanadoSemanas.toFixed(2);
+        
         let elBalance = document.getElementById('lblBalanceMes');
         elBalance.innerText = "$" + balance.toFixed(2);
         
@@ -796,27 +805,37 @@
             return;
         }
 
-        let totalGanado = db.semanasMes.reduce((acc, curr) => acc + curr.ingreso, 0);
+        let totalGanadoSemanas = db.semanasMes.reduce((acc, curr) => acc + curr.ingreso, 0);
         let totalGastado = db.semanasMes.reduce((acc, curr) => acc + curr.gastos, 0);
         let totalDeudaPagada = db.semanasMes.reduce((acc, curr) => acc + curr.abono, 0);
+        let totalIngresosMes = (db.fondoInicialMes || 0) + totalGanadoSemanas;
+        
+        // Calcular el excedente o remanente que sobró
+        let remanenteSobrante = totalIngresosMes - totalGastado;
+        if(remanenteSobrante < 0) remanenteSobrante = 0;
 
         db.cierresMensualesDetallados.push({
             mesNombre: nombresMeses[mesIndex] + " " + anioActual,
-            totalGanado: totalGanado,
+            fondoInicial: db.fondoInicialMes || 0,
+            totalGanado: totalGanadoSemanas,
             totalGastado: totalGastado,
             totalDeudaPagada: totalDeudaPagada,
+            remanenteSobrante: remanenteSobrante,
             semanasDetalle: [...db.semanasMes]
         });
 
+        // Limpiar el mes actual pero traspasar el remanente como fondo inicial del nuevo mes
         db.semanasMes = [];
         db.gastosPagados = {};
+        db.fondoInicialMes = remanenteSobrante;
+        
         guardarDB();
 
         actualizarTablaSemanas();
         actualizarHistorialDetallado();
         document.getElementById('resultadoCard').style.display = "none";
 
-        alert("¡Mes cerrado y guardado con éxito!");
+        alert(`¡Mes cerrado con éxito!\nSe han arrastrado $${remanenteSobrante.toFixed(2)} como fondo inicial para el siguiente mes.`);
         
         mesIndex++;
         if(mesIndex > 11) {
@@ -861,8 +880,9 @@
                     <span>📅 ${c.mesNombre}</span>
                     <span style="font-size: 0.85rem; color: var(--text-muted);">Deuda Pagada: <strong style="color: var(--success);">$${c.totalDeudaPagada.toFixed(2)}</strong></span>
                 </div>
-                <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 8px;">
-                    Total Ingresos: <strong>$${c.totalGanado.toFixed(2)}</strong> | Total Gastos/Apartados: <strong>$${c.totalGastado.toFixed(2)}</strong>
+                <div style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 8px;">
+                    Fondo Inicial: <strong>$${(c.fondoInicial || 0).toFixed(2)}</strong> | Ingresos Semanas: <strong>$${c.totalGanado.toFixed(2)}</strong><br>
+                    Gastos: <strong>$${c.totalGastado.toFixed(2)}</strong> | Sobrante Arrastrado: <strong style="color: var(--success);">$${(c.remanenteSobrante || 0).toFixed(2)}</strong>
                 </div>
                 <table>
                     <thead>
