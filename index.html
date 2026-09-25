@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Finanzas Diego PRO</title>
+    <title>Finanzas Diego PRO - Calendario</title>
     <style>
         :root {
             --bg-dark: #0b0f19;
@@ -150,61 +150,113 @@
         }
         .btn:hover { opacity: 0.9; }
         .btn-success { background-color: var(--success); }
-        
-        /* Estilos minimalistas para la lista de gastos */
-        .gasto-item {
+
+        /* Estilos del Calendario Interactivo */
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 4px;
+            text-align: center;
+        }
+        .calendar-day-name {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            padding: 4px 0;
+            font-weight: 600;
+        }
+        .calendar-cell {
+            background: #0b0f19;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            min-height: 48px;
+            padding: 4px 2px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+        .calendar-cell:hover {
+            border-color: var(--primary);
+        }
+        .calendar-cell.other-month {
+            opacity: 0.3;
+        }
+        .calendar-cell.has-event {
+            border-color: rgba(59, 130, 246, 0.4);
+            background: rgba(59, 130, 246, 0.05);
+        }
+        .calendar-cell.all-paid {
+            border-color: rgba(16, 185, 129, 0.5);
+            background: rgba(16, 185, 129, 0.08);
+        }
+        .cal-day-num {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+        .cal-indicators {
+            display: flex;
+            gap: 2px;
+            flex-wrap: wrap;
+            justify-content: center;
+            max-width: 100%;
+        }
+        .cal-dot {
+            width: 5px;
+            height: 5px;
+            background-color: var(--warning);
+            border-radius: 50%;
+        }
+        .cal-dot.paid {
+            background-color: var(--success);
+        }
+
+        /* Panel de Detalle del Día Seleccionado */
+        .day-detail-panel {
+            background: #0b0f19;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px;
+            margin-top: 12px;
+        }
+        .day-detail-title {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .gasto-item-cal {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            background: #0b0f19;
+            background: var(--card-bg);
             border: 1px solid var(--border);
             padding: 8px 10px;
-            border-radius: 8px;
-            margin-bottom: 8px;
+            border-radius: 6px;
+            margin-bottom: 6px;
             gap: 6px;
         }
-        .gasto-info {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            flex: 1;
-            min-width: 0;
+        .gasto-item-cal.pagado {
+            border-color: rgba(16, 185, 129, 0.3);
+            background: rgba(16, 185, 129, 0.04);
         }
-        .gasto-info input[type="checkbox"] {
-            width: 18px;
-            height: 18px;
-            accent-color: var(--success);
-            cursor: pointer;
-            flex-shrink: 0;
+        .gasto-item-cal.pagado span {
+            text-decoration: line-through;
+            color: var(--success);
         }
-        .gasto-details {
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-        .gasto-name {
-            font-size: 0.85rem;
-            font-weight: 500;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        .gasto-date {
-            font-size: 0.7rem;
-            color: var(--text-muted);
-        }
-        .gasto-item input[type="number"] {
-            width: 75px;
-            padding: 5px 6px;
-            font-size: 0.9rem;
-            text-align: right;
-            flex-shrink: 0;
-        }
-        .gasto-actions {
-            display: flex;
-            gap: 4px;
-            flex-shrink: 0;
-        }
+
         .btn-icon {
             background: transparent;
             border: none;
@@ -213,19 +265,9 @@
             font-size: 0.85rem;
             padding: 4px;
             border-radius: 4px;
-            transition: color 0.2s;
         }
         .btn-icon:hover { color: var(--text-main); }
         .btn-icon.delete:hover { color: var(--danger); }
-
-        .gasto-item.pagado {
-            border-color: rgba(16, 185, 129, 0.3);
-            background: rgba(16, 185, 129, 0.03);
-        }
-        .gasto-item.pagado .gasto-name {
-            text-decoration: line-through;
-            color: var(--success);
-        }
 
         table {
             width: 100%;
@@ -281,7 +323,7 @@
     <header>
         <div class="badge-mes" id="lblMesActual">Cargando...</div>
         <h1>Finanzas PRO</h1>
-        <p>Control Minimalista</p>
+        <p>Control con Calendario Interactivo</p>
     </header>
 
     <!-- Estado de Deuda -->
@@ -336,11 +378,31 @@
         <button class="btn btn-success" style="margin-top: 12px;" onclick="cerrarMes()">Cerrar Mes e Iniciar Siguiente</button>
     </div>
 
-    <!-- Control de Gastos del Mes -->
+    <!-- Calendario y Control de Pagos Interactivo -->
     <div class="card">
-        <h2>Control de Pagos y Balance</h2>
+        <h2>Calendario de Pagos del Mes</h2>
         
-        <div style="margin-bottom: 12px; background: #0b0f19; padding: 10px; border-radius: 8px; border: 1px solid var(--border);">
+        <div class="calendar-header">
+            <span id="calMesAnioTitulo">Octubre 2026</span>
+            <span style="font-size: 0.75rem; color: var(--text-muted);">Toca un día para ver/pagar</span>
+        </div>
+
+        <div class="calendar-grid" id="calendarGrid">
+            <!-- Renderizado dinámico por JS -->
+        </div>
+
+        <!-- Panel del día seleccionado -->
+        <div class="day-detail-panel" id="dayDetailPanel">
+            <div class="day-detail-title">
+                <span id="lblDiaSeleccionado">Selecciona un día del calendario</span>
+            </div>
+            <div id="listaGastosDia">
+                <p style="color: var(--text-muted); font-size: 0.8rem; margin: 0; text-align: center;">Ningún pago en este día.</p>
+            </div>
+        </div>
+
+        <!-- Resumen Financiero -->
+        <div style="margin-top: 14px; background: #0b0f19; padding: 10px; border-radius: 8px; border: 1px solid var(--border);">
             <div class="metric-row" style="margin-top: 0; margin-bottom: 4px;">
                 <span class="metric-label">Fondo Inicial (Arrastre):</span>
                 <span class="metric-value success" id="lblFondoInicial" style="font-size: 0.9rem;">$0.00</span>
@@ -359,16 +421,14 @@
             </div>
         </div>
 
-        <div class="metric-row" style="margin-bottom: 12px; background: #0b0f19; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border);">
+        <div class="metric-row" style="margin-top: 10px; background: #0b0f19; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border);">
             <span class="metric-label" style="color: var(--success);">Pagado Real: <strong id="lblTotalPagado">$0.00</strong></span>
             <span class="metric-label" style="text-align: right;">Pendiente: <strong id="lblPendientePagos" class="warning" style="color: var(--warning);">$0.00</strong></span>
         </div>
 
-        <div id="listaGastosChecks"></div>
-        
-        <div style="display: flex; gap: 6px; margin-top: 8px;">
+        <div style="display: flex; gap: 6px; margin-top: 10px;">
             <button class="btn" style="background-color: #1e293b; flex: 1; padding: 10px; font-size: 0.85rem;" onclick="guardarGastosYChecks()">Guardar</button>
-            <button class="btn btn-success" style="flex: 1; margin-top:0; padding: 10px; font-size: 0.85rem;" onclick="abrirModalGasto()">+ Agregar</button>
+            <button class="btn btn-success" style="flex: 1; margin-top:0; padding: 10px; font-size: 0.85rem;" onclick="abrirModalGasto()">+ Agregar Pago</button>
         </div>
     </div>
 
@@ -391,8 +451,8 @@
             <input type="text" id="modalNombre" placeholder="Ej. Internet">
         </div>
         <div class="form-group">
-            <label>Fecha o Día</label>
-            <input type="text" id="modalDia" placeholder="Ej. Día 15">
+            <label>Día del Mes (Ej. 1, 4, 15... o 0 si es variable)</label>
+            <input type="number" id="modalDiaNum" placeholder="1 a 31" min="0" max="31">
         </div>
         <div class="form-group">
             <label>Monto ($)</label>
@@ -414,18 +474,18 @@
         cierresMensualesDetallados: [],
         fondoInicialMes: 0,
         plantillaGastos: [
-            { id: 'gym', nombre: 'Gym', dia: 'Día 1' },
-            { id: 'rentaRestante', nombre: 'Renta Restante', dia: 'Día 4' },
-            { id: 'streaming', nombre: 'Streaming', dia: 'Día 5' },
-            { id: 'celular', nombre: 'Celular', dia: 'Día 10' },
-            { id: 'tcRoja', nombre: 'TC Roja', dia: 'Día 12' },
-            { id: 'tcGris', nombre: 'TC Gris', dia: 'Día 22' },
-            { id: 'carro', nombre: 'Carro', dia: 'Día 25' },
-            { id: 'seguroCarro', nombre: 'Seguro Carro', dia: 'Día 27' },
-            { id: 'seguroVida', nombre: 'Seguro Vida', dia: 'Día 28' },
-            { id: 'gasolina', nombre: 'Gasolina', dia: 'Variable' },
-            { id: 'salidas', nombre: 'Salidas', dia: 'Variable' },
-            { id: 'family', nombre: 'Family', dia: 'Variable' }
+            { id: 'gym', nombre: 'Gym', diaNum: 1 },
+            { id: 'rentaRestante', nombre: 'Renta Restante', diaNum: 4 },
+            { id: 'streaming', nombre: 'Streaming', diaNum: 5 },
+            { id: 'celular', nombre: 'Celular', diaNum: 10 },
+            { id: 'tcRoja', nombre: 'TC Roja', diaNum: 12 },
+            { id: 'tcGris', nombre: 'TC Gris', diaNum: 22 },
+            { id: 'carro', nombre: 'Carro', diaNum: 25 },
+            { id: 'seguroCarro', nombre: 'Seguro Carro', diaNum: 27 },
+            { id: 'seguroVida', nombre: 'Seguro Vida', diaNum: 28 },
+            { id: 'gasolina', nombre: 'Gasolina', diaNum: 0 },
+            { id: 'salidas', nombre: 'Salidas', diaNum: 0 },
+            { id: 'family', nombre: 'Family', diaNum: 0 }
         ],
         gastosValores: {
             gym: 30, rentaRestante: 500, streaming: 20, celular: 65,
@@ -440,6 +500,7 @@
     let fechaActualSistema = new Date();
     let mesIndex = fechaActualSistema.getMonth();
     let anioActual = fechaActualSistema.getFullYear();
+    let diaSeleccionadoCalendario = null;
 
     function cargarDB() {
         let guardado = localStorage.getItem(STORAGE_KEY);
@@ -530,40 +591,135 @@
         }
     }
 
-    function renderizarGastosChecks() {
-        let contenedor = document.getElementById('listaGastosChecks');
-        contenedor.innerHTML = "";
+    function renderizarCalendario() {
+        document.getElementById('calMesAnioTitulo').innerText = `${nombresMeses[mesIndex]} ${anioActual}`;
+        let grid = document.getElementById('calendarGrid');
+        grid.innerHTML = "";
+
+        // Nombres de días
+        const diasNombres = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
+        diasNombres.forEach(dn => {
+            let divName = document.createElement('div');
+            divName.className = 'calendar-day-name';
+            divName.innerText = dn;
+            grid.appendChild(divName);
+        });
+
+        let primerDiaMes = new Date(anioActual, mesIndex, 1);
+        let ultimoDiaMes = new Date(anioActual, mesIndex + 1, 0);
+        let totalDias = ultimoDiaMes.getDate();
         
-        db.plantillaGastos.forEach(g => {
+        // Ajustar Lunes como inicio de semana (0 = Lunes, 6 = Domingo)
+        let inicioCol = primerDiaMes.getDay() - 1;
+        if (inicioCol === -1) inicioCol = 6;
+
+        // Celdas vacías del mes anterior
+        let ultimoDiaMesAnterior = new Date(anioActual, mesIndex, 0).getDate();
+        for (let i = inicioCol - 1; i >= 0; i--) {
+            let cell = document.createElement('div');
+            cell.className = 'calendar-cell other-month';
+            cell.innerHTML = `<span class="cal-day-num">${ultimoDiaMesAnterior - i}</span>`;
+            grid.appendChild(cell);
+        }
+
+        // Días del mes actual
+        for (let dia = 1; dia <= totalDias; dia++) {
+            let cell = document.createElement('div');
+            cell.className = 'calendar-cell';
+            
+            // Buscar gastos en este día
+            let gastosDelDia = db.plantillaGastos.filter(g => (g.diaNum || 0) === dia);
+            let tieneGastos = gastosDelDia.length > 0;
+            
+            if (tieneGastos) {
+                cell.classList.add('has-event');
+                let todosPagados = gastosDelDia.every(g => !!db.gastosPagados[g.id]);
+                if (todosPagados) {
+                    cell.classList.add('all-paid');
+                }
+            }
+
+            if (diaSeleccionadoCalendario === dia) {
+                cell.style.borderColor = 'var(--primary)';
+            }
+
+            let dotsHtml = '<div class="cal-indicators">';
+            gastosDelDia.forEach(g => {
+                let pagado = !!db.gastosPagados[g.id];
+                dotsHtml += `<div class="cal-dot ${pagado ? 'paid' : ''}" title="${g.nombre}"></div>`;
+            });
+            dotsHtml += '</div>';
+
+            cell.innerHTML = `<span class="cal-day-num">${dia}</span>${dotsHtml}`;
+            cell.onclick = () => seleccionarDiaCalendario(dia);
+            grid.appendChild(cell);
+        }
+
+        // Rellenar días del siguiente mes si es necesario
+        let celdasTotales = grid.children.length - 7;
+        let celdasRestantes = (7 - (celdasTotales % 7)) % 7;
+        for (let d = 1; d <= celdasRestantes; d++) {
+            let cell = document.createElement('div');
+            cell.className = 'calendar-cell other-month';
+            cell.innerHTML = `<span class="cal-day-num">${d}</span>`;
+            grid.appendChild(cell);
+        }
+
+        renderizarGastosDiaSeleccionado();
+        calcularTotalesGastos();
+    }
+
+    function seleccionarDiaCalendario(dia) {
+        diaSeleccionadoCalendario = dia;
+        renderizarCalendario();
+    }
+
+    function renderizarGastosDiaSeleccionado() {
+        let contenedor = document.getElementById('listaGastosDia');
+        let lblTitulo = document.getElementById('lblDiaSeleccionado');
+
+        if (!diaSeleccionadoCalendario) {
+            lblTitulo.innerText = "Selecciona un día del calendario";
+            contenedor.innerHTML = `<p style="color: var(--text-muted); font-size: 0.8rem; margin: 0; text-align: center;">Toca cualquier número de arriba para ver sus pagos.</p>`;
+            return;
+        }
+
+        lblTitulo.innerHTML = `<span>Día ${diaSeleccionadoCalendario} de ${nombresMeses[mesIndex]}</span>`;
+        let gastosDelDia = db.plantillaGastos.filter(g => (g.diaNum || 0) === diaSeleccionadoCalendario);
+
+        if (gastosDelDia.length === 0) {
+            contenedor.innerHTML = `<p style="color: var(--text-muted); font-size: 0.8rem; margin: 0; text-align: center;">No hay pagos programados para el día ${diaSeleccionadoCalendario}. (Los pagos sin fecha específica o variables están en la lista inferior o ajústalos editando su día).</p>`;
+            return;
+        }
+
+        contenedor.innerHTML = "";
+        gastosDelDia.forEach(g => {
             let monto = db.gastosValores[g.id] !== undefined ? db.gastosValores[g.id] : 0;
             let pagado = !!db.gastosPagados[g.id];
 
             let div = document.createElement('div');
-            div.className = `gasto-item ${pagado ? 'pagado' : ''}`;
+            div.className = `gasto-item-cal ${pagado ? 'pagado' : ''}`;
             div.innerHTML = `
-                <div class="gasto-info">
-                    <input type="checkbox" id="chk_${g.id}" ${pagado ? 'checked' : ''} onchange="togglePagado('${g.id}')">
-                    <div class="gasto-details">
-                        <span class="gasto-name">${g.nombre}</span>
-                        <span class="gasto-date">${g.dia}</span>
-                    </div>
+                <div style="display: flex; align-items: center; gap: 8px; flex: 1; overflow: hidden;">
+                    <input type="checkbox" id="chk_${g.id}" ${pagado ? 'checked' : ''} onchange="togglePagado('${g.id}')" style="width: 16px; height: 16px; accent-color: var(--success); cursor: pointer;">
+                    <span style="font-size: 0.85rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${g.nombre} ($${monto.toFixed(2)})</span>
                 </div>
-                <input type="number" id="val_${g.id}" value="${monto}" onfocus="this.select()" oninput="calcularTotalesGastos()">
-                <div class="gasto-actions">
+                <div style="display: flex; gap: 4px;">
                     <button class="btn-icon" onclick="abrirModalEditarGasto('${g.id}')" title="Editar">✏️</button>
                     <button class="btn-icon delete" onclick="eliminarGasto('${g.id}')" title="Eliminar">✕</button>
                 </div>
             `;
             contenedor.appendChild(div);
         });
-        calcularTotalesGastos();
     }
 
     function togglePagado(id) {
-        let isChecked = document.getElementById(`chk_${id}`).checked;
-        db.gastosPagados[id] = isChecked;
-        guardarDB();
-        renderizarGastosChecks();
+        let chk = document.getElementById(`chk_${id}`);
+        if (chk) {
+            db.gastosPagados[id] = chk.checked;
+            guardarDB();
+            renderizarCalendario();
+        }
     }
 
     function calcularTotalesGastos() {
@@ -571,9 +727,8 @@
         let totalPagadoReal = 0;
 
         db.plantillaGastos.forEach(g => {
-            let input = document.getElementById(`val_${g.id}`);
-            let val = input ? (parseFloat(input.value) || 0) : (db.gastosValores[g.id] || 0);
-            let pagado = document.getElementById(`chk_${g.id}`) ? document.getElementById(`chk_${g.id}`).checked : false;
+            let val = db.gastosValores[g.id] !== undefined ? db.gastosValores[g.id] : 0;
+            let pagado = !!db.gastosPagados[g.id];
 
             totalGeneral += val;
             if (pagado) {
@@ -588,7 +743,6 @@
         document.getElementById('lblPendientePagos').innerText = "$" + pendiente.toFixed(2);
 
         actualizarResumenGanancias(totalGeneral);
-
         return totalGeneral;
     }
 
@@ -612,12 +766,6 @@
     }
 
     function guardarGastosYChecks() {
-        db.plantillaGastos.forEach(g => {
-            let input = document.getElementById(`val_${g.id}`);
-            if (input) {
-                db.gastosValores[g.id] = parseFloat(input.value) || 0;
-            }
-        });
         recalcularDeudaTotal();
         guardarDB();
         alert("¡Guardado con éxito!");
@@ -627,7 +775,7 @@
         document.getElementById('modalGastoTitulo').innerText = "Nuevo Pago";
         document.getElementById('modalGastoIdOriginal').value = "";
         document.getElementById('modalNombre').value = "";
-        document.getElementById('modalDia').value = "";
+        document.getElementById('modalDiaNum').value = "";
         document.getElementById('modalMonto').value = "";
         document.getElementById('modalGasto').style.display = "flex";
     }
@@ -640,7 +788,7 @@
         document.getElementById('modalGastoTitulo').innerText = "Editar Pago";
         document.getElementById('modalGastoIdOriginal').value = id;
         document.getElementById('modalNombre').value = g.nombre;
-        document.getElementById('modalDia').value = g.dia;
+        document.getElementById('modalDiaNum').value = g.diaNum || 0;
         document.getElementById('modalMonto').value = monto;
         document.getElementById('modalGasto').style.display = "flex";
     }
@@ -652,7 +800,7 @@
     function guardarGastoModal() {
         let idOriginal = document.getElementById('modalGastoIdOriginal').value;
         let nombre = document.getElementById('modalNombre').value.trim();
-        let dia = document.getElementById('modalDia').value.trim();
+        let diaNum = parseInt(document.getElementById('modalDiaNum').value) || 0;
         let monto = parseFloat(document.getElementById('modalMonto').value) || 0;
 
         if(!nombre) {
@@ -664,7 +812,7 @@
             let g = db.plantillaGastos.find(item => item.id === idOriginal);
             if(g) {
                 g.nombre = nombre;
-                g.dia = dia || 'Variable';
+                g.diaNum = diaNum;
             }
             db.gastosValores[idOriginal] = monto;
         } else {
@@ -672,14 +820,14 @@
             db.plantillaGastos.push({
                 id: nuevoId,
                 nombre: nombre,
-                dia: dia || 'Variable'
+                diaNum: diaNum
             });
             db.gastosValores[nuevoId] = monto;
         }
 
         guardarDB();
         cerrarModalGasto();
-        renderizarGastosChecks();
+        renderizarCalendario();
         recalcularDeudaTotal();
     }
 
@@ -689,7 +837,7 @@
             delete db.gastosValores[id];
             delete db.gastosPagados[id];
             guardarDB();
-            renderizarGastosChecks();
+            renderizarCalendario();
             recalcularDeudaTotal();
         }
     }
@@ -819,7 +967,7 @@
             `;
             tbody.appendChild(tr);
         });
-        calcularTotalesGastos();
+        renderizarCalendario();
     }
 
     function cerrarMes() {
@@ -867,7 +1015,8 @@
 
         document.getElementById('lblMesActual').innerText = `Mes: ${nombresMeses[mesIndex]} ${anioActual}`;
         inicializarSelectSemanas();
-        renderizarGastosChecks();
+        diaSeleccionadoCalendario = null;
+        renderizarCalendario();
         recalcularDeudaTotal();
     }
 
@@ -921,7 +1070,7 @@
         cargarDB();
         document.getElementById('lblMesActual').innerText = `Mes: ${nombresMeses[mesIndex]} ${anioActual}`;
         inicializarSelectSemanas();
-        renderizarGastosChecks();
+        renderizarCalendario();
         recalcularDeudaTotal();
         actualizarTablaSemanas();
         actualizarHistorialDetallado();
