@@ -341,11 +341,11 @@
             <select id="nombreSemana"></select>
         </div>
         <div class="form-group">
-            <label>Monto neto recibido ($)</label>
-            <input type="number" id="ingresoSemanal" placeholder="0.00" onfocus="this.select()" value="">
+            <label>Monto bruto recibido ($)</label>
+            <input type="number" id="ingresoSemanal" placeholder="Ej. 1200" onfocus="this.select()" value="">
         </div>
         <div class="form-group">
-            <label>Descuento renta nómina</label>
+            <label>Descuento automático de renta (Nómina)</label>
             <input type="number" id="rentaNomina" value="250" readonly>
         </div>
         <div class="checkbox-group">
@@ -359,7 +359,7 @@
     <div class="card" id="resultadoCard" style="display:none; border-left: 3px solid var(--success);">
         <h2>Último Registro</h2>
         <div class="metric-row"><span class="metric-label">Semana:</span><span class="metric-value primary" id="resNombre" style="font-size: 0.95rem;">-</span></div>
-        <div class="metric-row"><span class="metric-label">Ingreso Neto:</span><span class="metric-value primary" id="resIngreso">$0.00</span></div>
+        <div class="metric-row"><span class="metric-label">Ingreso Neto (Menos $250):</span><span class="metric-value primary" id="resIngreso">$0.00</span></div>
         <div class="metric-row"><span class="metric-label">Apartado Gastos:</span><span class="metric-value warning" id="resGastos">$0.00</span></div>
         <div class="metric-row"><span class="metric-label">Abono Deuda:</span><span class="metric-value success" id="resAbono">$0.00</span></div>
     </div>
@@ -369,7 +369,7 @@
         <h2>Semanas del Mes</h2>
         <table>
             <thead>
-                <tr><th>Semana</th><th>Ingreso</th><th>Abono</th><th></th></tr>
+                <tr><th>Semana</th><th>Ingreso Neto</th><th>Abono</th><th></th></tr>
             </thead>
             <tbody id="tablaSemanas">
                 <tr><td colspan="4" style="text-align: center; color: var(--text-muted); padding: 12px;">Sin semanas registradas</td></tr>
@@ -387,9 +387,7 @@
             <span style="font-size: 0.75rem; color: var(--text-muted);">Toca un día para ver/pagar</span>
         </div>
 
-        <div class="calendar-grid" id="calendarGrid">
-            <!-- Renderizado dinámico por JS -->
-        </div>
+        <div class="calendar-grid" id="calendarGrid"></div>
 
         <!-- Panel del día seleccionado -->
         <div class="day-detail-panel" id="dayDetailPanel">
@@ -408,7 +406,7 @@
                 <span class="metric-value success" id="lblFondoInicial" style="font-size: 0.9rem;">$0.00</span>
             </div>
             <div class="metric-row" style="margin-top: 0; margin-bottom: 4px;">
-                <span class="metric-label">Total Ganado:</span>
+                <span class="metric-label">Total Ganado (Neto):</span>
                 <span class="metric-value primary" id="lblTotalGanadoMes" style="font-size: 0.95rem;">$0.00</span>
             </div>
             <div class="metric-row" style="margin-top: 0; margin-bottom: 4px;">
@@ -511,8 +509,15 @@
                 db.semanasMes = parsed.semanasMes || [];
                 db.cierresMensualesDetallados = parsed.cierresMensualesDetallados || [];
                 db.fondoInicialMes = parsed.fondoInicialMes !== undefined ? parsed.fondoInicialMes : 0;
+                
                 if (parsed.plantillaGastos) {
-                    db.plantillaGastos = parsed.plantillaGastos;
+                    db.plantillaGastos = parsed.plantillaGastos.map(g => {
+                        if (g.diaNum === undefined) {
+                            let match = String(g.dia || '').match(/\d+/);
+                            g.diaNum = match ? parseInt(match[0]) : 0;
+                        }
+                        return g;
+                    });
                 }
                 if (parsed.gastosValores) {
                     db.gastosValores = { ...db.gastosValores, ...parsed.gastosValores };
@@ -596,7 +601,6 @@
         let grid = document.getElementById('calendarGrid');
         grid.innerHTML = "";
 
-        // Nombres de días
         const diasNombres = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
         diasNombres.forEach(dn => {
             let divName = document.createElement('div');
@@ -609,11 +613,9 @@
         let ultimoDiaMes = new Date(anioActual, mesIndex + 1, 0);
         let totalDias = ultimoDiaMes.getDate();
         
-        // Ajustar Lunes como inicio de semana (0 = Lunes, 6 = Domingo)
         let inicioCol = primerDiaMes.getDay() - 1;
         if (inicioCol === -1) inicioCol = 6;
 
-        // Celdas vacías del mes anterior
         let ultimoDiaMesAnterior = new Date(anioActual, mesIndex, 0).getDate();
         for (let i = inicioCol - 1; i >= 0; i--) {
             let cell = document.createElement('div');
@@ -622,12 +624,10 @@
             grid.appendChild(cell);
         }
 
-        // Días del mes actual
         for (let dia = 1; dia <= totalDias; dia++) {
             let cell = document.createElement('div');
             cell.className = 'calendar-cell';
             
-            // Buscar gastos en este día
             let gastosDelDia = db.plantillaGastos.filter(g => (g.diaNum || 0) === dia);
             let tieneGastos = gastosDelDia.length > 0;
             
@@ -655,7 +655,6 @@
             grid.appendChild(cell);
         }
 
-        // Rellenar días del siguiente mes si es necesario
         let celdasTotales = grid.children.length - 7;
         let celdasRestantes = (7 - (celdasTotales % 7)) % 7;
         for (let d = 1; d <= celdasRestantes; d++) {
@@ -688,7 +687,7 @@
         let gastosDelDia = db.plantillaGastos.filter(g => (g.diaNum || 0) === diaSeleccionadoCalendario);
 
         if (gastosDelDia.length === 0) {
-            contenedor.innerHTML = `<p style="color: var(--text-muted); font-size: 0.8rem; margin: 0; text-align: center;">No hay pagos programados para el día ${diaSeleccionadoCalendario}. (Los pagos sin fecha específica o variables están en la lista inferior o ajústalos editando su día).</p>`;
+            contenedor.innerHTML = `<p style="color: var(--text-muted); font-size: 0.8rem; margin: 0; text-align: center;">No hay pagos programados para el día ${diaSeleccionadoCalendario}.</p>`;
             return;
         }
 
@@ -747,7 +746,7 @@
     }
 
     function actualizarResumenGanancias(totalGastosParam) {
-        let totalGanadoSemanas = db.semanasMes.reduce((acc, curr) => acc + curr.ingreso, 0);
+        let totalGanadoSemanas = db.semanasMes.reduce((acc, curr) => acc + curr.ingresoNeto, 0);
         let fondoInicial = db.fondoInicialMes || 0;
         let totalIngresosGeneral = fondoInicial + totalGanadoSemanas;
         let balance = totalIngresosGeneral - totalGastosParam;
@@ -847,15 +846,13 @@
         let totalGastos = calcularTotalesGastos();
         let numSemanasMes = listaSemanasMes.length > 0 ? listaSemanasMes.length : 4;
         let gastoSemanalBase = totalGastos / numSemanasMes;
-        let nominaRenta = parseFloat(document.getElementById('rentaNomina').value) || 0;
-        let totalApartadoSemanal = gastoSemanalBase + nominaRenta;
 
         db.semanasMes.forEach(s => {
-            s.gastos = totalApartadoSemanal;
+            s.gastos = gastoSemanalBase;
             if (s.sinAbono) {
                 s.abono = 0;
             } else {
-                let abono = s.ingreso - totalApartadoSemanal;
+                let abono = s.ingresoNeto - gastoSemanalBase;
                 s.abono = abono < 0 ? 0 : abono;
             }
             deudaTemp -= s.abono;
@@ -871,23 +868,26 @@
         let objetoSemanaInfo = listaSemanasMes.find(s => s.id === idSemanaSeleccionada);
         let nombreSem = objetoSemanaInfo ? objetoSemanaInfo.texto : idSemanaSeleccionada;
 
-        let ingreso = parseFloat(document.getElementById('ingresoSemanal').value) || 0;
+        let ingresoBruto = parseFloat(document.getElementById('ingresoSemanal').value) || 0;
+        let nominaRenta = parseFloat(document.getElementById('rentaNomina').value) || 250;
         let sinAbono = document.getElementById('sinAbonoDeuda').checked;
 
-        if(ingreso <= 0 && !sinAbono) {
+        if(ingresoBruto <= 0 && !sinAbono) {
             alert("Ingresa un monto válido o marca sin abono.");
             return;
         }
 
+        // DEDUCCIÓN DIRECTA: Restar los $250 del ingreso bruto de la semana
+        let ingresoNeto = ingresoBruto - nominaRenta;
+        if(ingresoNeto < 0) ingresoNeto = 0;
+
         let totalGastos = calcularTotalesGastos();
         let numSemanasMes = listaSemanasMes.length > 0 ? listaSemanasMes.length : 4;
         let gastoSemanalBase = totalGastos / numSemanasMes;
-        let nominaRenta = parseFloat(document.getElementById('rentaNomina').value) || 0;
-        let totalApartadoSemanal = gastoSemanalBase + nominaRenta;
 
         let abono = 0;
         if (!sinAbono) {
-            abono = ingreso - totalApartadoSemanal;
+            abono = ingresoNeto - gastoSemanalBase;
             if (abono < 0) abono = 0;
         }
 
@@ -896,8 +896,9 @@
         if(editIndex >= 0) {
             db.semanasMes[editIndex].nombre = nombreSem;
             db.semanasMes[editIndex].idSemana = idSemanaSeleccionada;
-            db.semanasMes[editIndex].ingreso = ingreso;
-            db.semanasMes[editIndex].gastos = totalApartadoSemanal;
+            db.semanasMes[editIndex].ingresoBruto = ingresoBruto;
+            db.semanasMes[editIndex].ingresoNeto = ingresoNeto;
+            db.semanasMes[editIndex].gastos = gastoSemanalBase;
             db.semanasMes[editIndex].abono = abono;
             db.semanasMes[editIndex].sinAbono = sinAbono;
             document.getElementById('editIndex').value = -1;
@@ -906,8 +907,9 @@
             db.semanasMes.push({
                 nombre: nombreSem,
                 idSemana: idSemanaSeleccionada,
-                ingreso: ingreso,
-                gastos: totalApartadoSemanal,
+                ingresoBruto: ingresoBruto,
+                ingresoNeto: ingresoNeto,
+                gastos: gastoSemanalBase,
                 abono: abono,
                 sinAbono: sinAbono
             });
@@ -916,8 +918,8 @@
         recalcularDeudaTotal();
 
         document.getElementById('resNombre').innerText = nombreSem;
-        document.getElementById('resIngreso').innerText = "$" + ingreso.toFixed(2);
-        document.getElementById('resGastos').innerText = "$" + totalApartadoSemanal.toFixed(2);
+        document.getElementById('resIngreso').innerText = "$" + ingresoNeto.toFixed(2) + ` (Bruto: $${ingresoBruto.toFixed(2)} - $250)`;
+        document.getElementById('resGastos').innerText = "$" + gastoSemanalBase.toFixed(2);
         document.getElementById('resAbono').innerText = "$" + abono.toFixed(2);
         document.getElementById('resultadoCard').style.display = "block";
 
@@ -930,7 +932,7 @@
     function editarSemana(index) {
         let s = db.semanasMes[index];
         document.getElementById('nombreSemana').value = s.idSemana || listaSemanasMes[0].id;
-        document.getElementById('ingresoSemanal').value = s.ingreso;
+        document.getElementById('ingresoSemanal').value = s.ingresoBruto !== undefined ? s.ingresoBruto : (s.ingresoNeto + 250);
         document.getElementById('sinAbonoDeuda').checked = !!s.sinAbono;
         document.getElementById('editIndex').value = index;
         document.getElementById('btnProcesar').innerText = "Actualizar Semana";
@@ -956,9 +958,10 @@
         db.semanasMes.forEach((s, idx) => {
             let tr = document.createElement('tr');
             let txtAbono = s.sinAbono ? '<span style="color: var(--warning);">Sin Abono</span>' : `$${s.abono.toFixed(2)}`;
+            let netoMostrar = s.ingresoNeto !== undefined ? s.ingresoNeto : (s.ingreso - 250);
             tr.innerHTML = `
                 <td><strong style="font-size: 0.8rem;">${s.nombre}</strong></td>
-                <td>$${s.ingreso.toFixed(2)}</td>
+                <td>$${netoMostrar.toFixed(2)}</td>
                 <td style="font-weight: 500;">${txtAbono}</td>
                 <td style="text-align: right;">
                     <button class="btn-icon" onclick="editarSemana(${idx})">✏️</button>
@@ -976,19 +979,20 @@
             return;
         }
 
-        let totalGanadoSemanas = db.semanasMes.reduce((acc, curr) => acc + curr.ingreso, 0);
-        let totalGastado = db.semanasMes.reduce((acc, curr) => acc + curr.gastos, 0);
+        let totalGanadoSemanas = db.semanasMes.reduce((acc, curr) => acc + (curr.ingresoNeto !== undefined ? curr.ingresoNeto : (curr.ingreso - 250)), 0);
+        let totalGastado = db.semanasMes.reduce((acc, curr) => acc + curr.gastos, 0) * (db.semanasMes.length);
         let totalDeudaPagada = db.semanasMes.reduce((acc, curr) => acc + curr.abono, 0);
         let totalIngresosMes = (db.fondoInicialMes || 0) + totalGanadoSemanas;
         
-        let remanenteSobrante = totalIngresosMes - totalGastado;
+        let totalGastosMesGral = calcularTotalesGastos();
+        let remanenteSobrante = totalIngresosMes - totalGastosMesGral;
         if(remanenteSobrante < 0) remanenteSobrante = 0;
 
         db.cierresMensualesDetallados.push({
             mesNombre: nombresMeses[mesIndex] + " " + anioActual,
             fondoInicial: db.fondoInicialMes || 0,
             totalGanado: totalGanadoSemanas,
-            totalGastado: totalGastado,
+            totalGastado: totalGastosMesGral,
             totalDeudaPagada: totalDeudaPagada,
             remanenteSobrante: remanenteSobrante,
             semanasDetalle: [...db.semanasMes]
@@ -1036,10 +1040,11 @@
             let htmlSemanas = "";
             c.semanasDetalle.forEach(sem => {
                 let txtAbonoHist = sem.sinAbono ? 'Sin Abono' : `$${sem.abono.toFixed(2)}`;
+                let netoSem = sem.ingresoNeto !== undefined ? sem.ingresoNeto : (sem.ingreso - 250);
                 htmlSemanas += `
                     <tr>
                         <td>${sem.nombre}</td>
-                        <td>$${sem.ingreso.toFixed(2)}</td>
+                        <td>$${netoSem.toFixed(2)}</td>
                         <td>${txtAbonoHist}</td>
                     </tr>
                 `;
@@ -1051,11 +1056,11 @@
                     <span style="font-size: 0.8rem; color: var(--success);">Deuda: $${c.totalDeudaPagada.toFixed(2)}</span>
                 </div>
                 <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 6px;">
-                    Fondo: $${(c.fondoInicial || 0).toFixed(2)} | Ganado: $${c.totalGanado.toFixed(2)} | Sobrante: <strong style="color: var(--success);">$${(c.remanenteSobrante || 0).toFixed(2)}</strong>
+                    Fondo: $${(c.fondoInicial || 0).toFixed(2)} | Ganado Neto: $${c.totalGanado.toFixed(2)} | Sobrante: <strong style="color: var(--success);">$${(c.remanenteSobrante || 0).toFixed(2)}</strong>
                 </div>
                 <table>
                     <thead>
-                        <tr><th>Semana</th><th>Ingreso</th><th>Abono</th></tr>
+                        <tr><th>Semana</th><th>Ingreso Neto</th><th>Abono</th></tr>
                     </thead>
                     <tbody>
                         ${htmlSemanas}
@@ -1068,6 +1073,14 @@
 
     window.onload = function() {
         cargarDB();
+        // Compatibilidad con registros viejos que no tenían ingresoNeto
+        db.semanasMes.forEach(s => {
+            if (s.ingresoNeto === undefined) {
+                s.ingresoBruto = s.ingreso;
+                s.ingresoNeto = s.ingreso - 250;
+                if(s.ingresoNeto < 0) s.ingresoNeto = 0;
+            }
+        });
         document.getElementById('lblMesActual').innerText = `Mes: ${nombresMeses[mesIndex]} ${anioActual}`;
         inicializarSelectSemanas();
         renderizarCalendario();
