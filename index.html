@@ -3,87 +3,88 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Finanzas Diego PRO - Control Total con Arrastre</title>
+    <title>Finanzas Diego PRO</title>
     <style>
         :root {
-            --bg-dark: #0f172a;
-            --card-bg: #1e293b;
+            --bg-dark: #0b0f19;
+            --card-bg: #131b2e;
             --primary: #3b82f6;
-            --success: #22c55e;
+            --success: #10b981;
             --danger: #ef4444;
             --warning: #f59e0b;
-            --text-main: #f8fafc;
-            --text-muted: #94a3b8;
-            --border: #334155;
+            --text-main: #f1f5f9;
+            --text-muted: #64748b;
+            --border: #1e293b;
         }
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             background-color: var(--bg-dark);
             color: var(--text-main);
             margin: 0;
-            padding: 20px;
+            padding: 16px;
         }
         .container {
-            max-width: 500px;
+            max-width: 480px;
             margin: 0 auto;
         }
         header {
             text-align: center;
-            margin-bottom: 25px;
+            margin-bottom: 20px;
         }
         header h1 {
             color: var(--text-main);
-            margin: 0 0 5px 0;
-            font-size: 1.6rem;
+            margin: 0 0 4px 0;
+            font-size: 1.4rem;
+            font-weight: 600;
         }
         header p {
             color: var(--text-muted);
             margin: 0;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
         }
         .badge-mes {
             display: inline-block;
-            background: var(--primary);
-            color: white;
-            padding: 4px 12px;
+            background: rgba(59, 130, 246, 0.15);
+            color: var(--primary);
+            padding: 3px 10px;
             border-radius: 20px;
-            font-size: 0.85rem;
-            font-weight: bold;
-            margin-bottom: 10px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-bottom: 8px;
         }
         .card {
             background-color: var(--card-bg);
-            border-radius: 16px;
-            padding: 20px;
-            margin-bottom: 20px;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+            border-radius: 14px;
+            padding: 16px;
+            margin-bottom: 14px;
             border: 1px solid var(--border);
         }
         .card h2 {
-            font-size: 1rem;
+            font-size: 0.8rem;
             color: var(--text-muted);
             margin-top: 0;
-            margin-bottom: 15px;
+            margin-bottom: 12px;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.8px;
+            font-weight: 600;
         }
         .form-group {
-            margin-bottom: 15px;
+            margin-bottom: 12px;
         }
         label {
             display: block;
-            font-size: 0.85rem;
+            font-size: 0.8rem;
             color: var(--text-muted);
-            margin-bottom: 6px;
+            margin-bottom: 4px;
         }
         input, select {
             width: 100%;
-            background-color: #0f172a;
+            background-color: #0b0f19;
             border: 1px solid var(--border);
-            border-radius: 10px;
+            border-radius: 8px;
             color: var(--text-main);
-            padding: 12px;
-            font-size: 1.1rem;
+            padding: 10px 12px;
+            font-size: 1rem;
             box-sizing: border-box;
             outline: none;
             transition: border-color 0.2s;
@@ -94,23 +95,24 @@
         .checkbox-group {
             display: flex;
             align-items: center;
-            gap: 10px;
-            background: #0f172a;
-            padding: 12px;
-            border-radius: 10px;
+            gap: 8px;
+            background: #0b0f19;
+            padding: 10px 12px;
+            border-radius: 8px;
             border: 1px solid var(--border);
-            margin-bottom: 15px;
+            margin-bottom: 12px;
             cursor: pointer;
         }
         .checkbox-group input[type="checkbox"] {
-            width: 20px;
-            height: 20px;
+            width: 16px;
+            height: 16px;
             accent-color: var(--warning);
             cursor: pointer;
         }
         .checkbox-group label {
             margin-bottom: 0;
             color: var(--warning);
+            font-size: 0.85rem;
             font-weight: 500;
             cursor: pointer;
         }
@@ -118,83 +120,107 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-top: 10px;
+            margin-top: 6px;
         }
         .metric-label {
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             color: var(--text-muted);
         }
         .metric-value {
-            font-size: 1.3rem;
-            font-weight: bold;
+            font-size: 1.15rem;
+            font-weight: 600;
         }
         .metric-value.success { color: var(--success); }
         .metric-value.danger { color: var(--danger); }
         .metric-value.primary { color: var(--primary); }
         .metric-value.warning { color: var(--warning); }
+        
         .btn {
             background-color: var(--primary);
             color: white;
             border: none;
             width: 100%;
-            padding: 14px;
-            border-radius: 10px;
-            font-size: 1rem;
-            font-weight: bold;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 600;
             cursor: pointer;
-            transition: background-color 0.2s;
-            margin-top: 5px;
+            transition: opacity 0.2s;
+            margin-top: 4px;
         }
-        .btn:hover { background-color: #2563eb; }
+        .btn:hover { opacity: 0.9; }
         .btn-success { background-color: var(--success); }
-        .btn-success:hover { background-color: #16a34a; }
-        .btn-danger { background-color: var(--danger); font-size: 0.75rem; padding: 6px 10px; margin-left: 4px; }
-        .btn-warning { background-color: var(--warning); font-size: 0.75rem; padding: 6px 10px; }
         
+        /* Estilos minimalistas para la lista de gastos */
         .gasto-item {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            background: #0f172a;
+            background: #0b0f19;
             border: 1px solid var(--border);
-            padding: 10px 12px;
-            border-radius: 10px;
-            margin-bottom: 10px;
-            gap: 8px;
+            padding: 8px 10px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            gap: 6px;
         }
         .gasto-info {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
             flex: 1;
+            min-width: 0;
         }
         .gasto-info input[type="checkbox"] {
-            width: 20px;
-            height: 20px;
+            width: 18px;
+            height: 18px;
             accent-color: var(--success);
             cursor: pointer;
+            flex-shrink: 0;
         }
         .gasto-details {
             display: flex;
             flex-direction: column;
+            overflow: hidden;
         }
         .gasto-name {
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
         .gasto-date {
-            font-size: 0.75rem;
+            font-size: 0.7rem;
             color: var(--text-muted);
         }
         .gasto-item input[type="number"] {
-            width: 85px;
-            padding: 6px;
-            font-size: 1rem;
+            width: 75px;
+            padding: 5px 6px;
+            font-size: 0.9rem;
             text-align: right;
+            flex-shrink: 0;
         }
+        .gasto-actions {
+            display: flex;
+            gap: 4px;
+            flex-shrink: 0;
+        }
+        .btn-icon {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 0.85rem;
+            padding: 4px;
+            border-radius: 4px;
+            transition: color 0.2s;
+        }
+        .btn-icon:hover { color: var(--text-main); }
+        .btn-icon.delete:hover { color: var(--danger); }
+
         .gasto-item.pagado {
-            border-color: var(--success);
-            opacity: 0.8;
+            border-color: rgba(16, 185, 129, 0.3);
+            background: rgba(16, 185, 129, 0.03);
         }
         .gasto-item.pagado .gasto-name {
             text-decoration: line-through;
@@ -204,27 +230,28 @@
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 10px;
-            font-size: 0.85rem;
+            margin-top: 6px;
+            font-size: 0.8rem;
         }
         th, td {
-            padding: 8px;
+            padding: 6px 4px;
             border-bottom: 1px solid var(--border);
             text-align: left;
         }
-        th { color: var(--text-muted); }
+        th { color: var(--text-muted); font-weight: 500; }
+        
         .mes-historial-card {
-            background: #0f172a;
+            background: #0b0f19;
             border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 15px;
-            margin-bottom: 12px;
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 10px;
         }
         .mes-historial-title {
-            font-weight: bold;
+            font-weight: 600;
             color: var(--primary);
-            font-size: 1.1rem;
-            margin-bottom: 8px;
+            font-size: 0.95rem;
+            margin-bottom: 6px;
             display: flex;
             justify-content: space-between;
         }
@@ -232,7 +259,8 @@
             display: none;
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.7);
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(3px);
             justify-content: center;
             align-items: center;
             z-index: 1000;
@@ -240,9 +268,9 @@
         .modal-content {
             background: var(--card-bg);
             padding: 20px;
-            border-radius: 16px;
-            width: 90%;
-            max-width: 400px;
+            border-radius: 14px;
+            width: 85%;
+            max-width: 340px;
             border: 1px solid var(--border);
         }
     </style>
@@ -251,111 +279,104 @@
 
 <div class="container">
     <header>
-        <h1>Finanzas Diego PRO</h1>
-        <div class="badge-mes" id="lblMesActual">Cargando mes...</div>
-        <p>Control Total con Arrastre y Persistencia</p>
+        <div class="badge-mes" id="lblMesActual">Cargando...</div>
+        <h1>Finanzas PRO</h1>
+        <p>Control Minimalista</p>
     </header>
 
     <!-- Estado de Deuda -->
-    <div class="card" style="border-left: 4px solid var(--danger);">
+    <div class="card" style="border-left: 3px solid var(--danger);">
         <h2>Deuda Objetivo Restante</h2>
         <div class="metric-value danger" id="lblDeuda">$10,000.00</div>
     </div>
 
     <!-- Registrar Ingreso de Semana -->
     <div class="card">
-        <h2>Registrar / Seleccionar Semana Laboral</h2>
+        <h2>Registrar Semana</h2>
         <input type="hidden" id="editIndex" value="-1">
         <div class="form-group">
-            <label>Selecciona la Semana (Lunes a Viernes)</label>
+            <label>Semana (Lunes a Viernes)</label>
             <select id="nombreSemana"></select>
         </div>
         <div class="form-group">
             <label>Monto neto recibido ($)</label>
-            <input type="number" id="ingresoSemanal" placeholder="Ej. 1200" onfocus="this.select()" value="">
+            <input type="number" id="ingresoSemanal" placeholder="0.00" onfocus="this.select()" value="">
         </div>
         <div class="form-group">
-            <label>Descuento renta automático de nómina</label>
+            <label>Descuento renta nómina</label>
             <input type="number" id="rentaNomina" value="250" readonly>
         </div>
         <div class="checkbox-group">
             <input type="checkbox" id="sinAbonoDeuda">
-            <label for="sinAbonoDeuda">⚠️ No colaborar con la deuda esta semana (Abono $0)</label>
+            <label for="sinAbonoDeuda">Sin abono a deuda esta semana ($0)</label>
         </div>
-        <button class="btn" id="btnProcesar" onclick="procesarSemana()">Registrar y Calcular Abono</button>
+        <button class="btn" id="btnProcesar" onclick="procesarSemana()">Registrar Semana</button>
     </div>
 
     <!-- Resultados Semana Registrada -->
-    <div class="card" id="resultadoCard" style="display:none; border-left: 4px solid var(--success);">
-        <h2>Último Registro Procesado</h2>
-        <div class="metric-row"><span class="metric-label">Semana:</span><span class="metric-value primary" id="resNombre">-</span></div>
+    <div class="card" id="resultadoCard" style="display:none; border-left: 3px solid var(--success);">
+        <h2>Último Registro</h2>
+        <div class="metric-row"><span class="metric-label">Semana:</span><span class="metric-value primary" id="resNombre" style="font-size: 0.95rem;">-</span></div>
         <div class="metric-row"><span class="metric-label">Ingreso Neto:</span><span class="metric-value primary" id="resIngreso">$0.00</span></div>
-        <div class="metric-row"><span class="metric-label">Apartado Gastos/Renta:</span><span class="metric-value warning" id="resGastos">$0.00</span></div>
-        <div class="metric-row"><span class="metric-label">¡Abono a Deuda!:</span><span class="metric-value success" id="resAbono">$0.00</span></div>
+        <div class="metric-row"><span class="metric-label">Apartado Gastos:</span><span class="metric-value warning" id="resGastos">$0.00</span></div>
+        <div class="metric-row"><span class="metric-label">Abono Deuda:</span><span class="metric-value success" id="resAbono">$0.00</span></div>
     </div>
 
     <!-- Semanas Registradas en el Mes -->
     <div class="card">
-        <h2>Semanas Laborables Registradas (Mes Actual)</h2>
+        <h2>Semanas del Mes</h2>
         <table>
             <thead>
-                <tr><th>Semana</th><th>Ingreso</th><th>Abono</th><th>Acciones</th></tr>
+                <tr><th>Semana</th><th>Ingreso</th><th>Abono</th><th></th></tr>
             </thead>
             <tbody id="tablaSemanas">
-                <tr><td colspan="4" style="text-align: center; color: var(--text-muted);">Sin semanas registradas este mes</td></tr>
+                <tr><td colspan="4" style="text-align: center; color: var(--text-muted); padding: 12px;">Sin semanas registradas</td></tr>
             </tbody>
         </table>
-        <button class="btn btn-success" style="margin-top: 15px;" onclick="cerrarMes()">Cerrar Mes Actual e Iniciar Siguiente</button>
+        <button class="btn btn-success" style="margin-top: 12px;" onclick="cerrarMes()">Cerrar Mes e Iniciar Siguiente</button>
     </div>
 
-    <!-- Control de Gastos del Mes con Checks y Gestión -->
+    <!-- Control de Gastos del Mes -->
     <div class="card">
-        <h2>Control de Pagos y Ganancias del Mes</h2>
+        <h2>Control de Pagos y Balance</h2>
         
-        <!-- Resumen Financiero del Mes -->
-        <div style="margin-bottom: 15px; background: #0f172a; padding: 12px; border-radius: 10px; border: 1px solid var(--border);">
-            <div class="metric-row" style="margin-top: 0; margin-bottom: 6px;">
-                <span class="metric-label">Fondo Inicial / Arrastre Mes Anterior:</span>
-                <span class="metric-value success" id="lblFondoInicial" style="font-size: 1rem;">$0.00</span>
+        <div style="margin-bottom: 12px; background: #0b0f19; padding: 10px; border-radius: 8px; border: 1px solid var(--border);">
+            <div class="metric-row" style="margin-top: 0; margin-bottom: 4px;">
+                <span class="metric-label">Fondo Inicial (Arrastre):</span>
+                <span class="metric-value success" id="lblFondoInicial" style="font-size: 0.9rem;">$0.00</span>
             </div>
-            <div class="metric-row" style="margin-top: 0; margin-bottom: 6px;">
-                <span class="metric-label">Total Ganado (Semanas):</span>
-                <span class="metric-value primary" id="lblTotalGanadoMes" style="font-size: 1.1rem;">$0.00</span>
+            <div class="metric-row" style="margin-top: 0; margin-bottom: 4px;">
+                <span class="metric-label">Total Ganado:</span>
+                <span class="metric-value primary" id="lblTotalGanadoMes" style="font-size: 0.95rem;">$0.00</span>
             </div>
-            <div class="metric-row" style="margin-top: 0; margin-bottom: 6px;">
+            <div class="metric-row" style="margin-top: 0; margin-bottom: 4px;">
                 <span class="metric-label">Total Gastos Estimados:</span>
-                <span class="metric-value warning" id="lblTotalGastos" style="font-size: 1.1rem;">$0.00</span>
+                <span class="metric-value warning" id="lblTotalGastos" style="font-size: 0.95rem;">$0.00</span>
             </div>
-            <div class="metric-row" style="margin-top: 0; border-top: 1px dashed var(--border); padding-top: 6px;">
-                <span class="metric-label">Balance Mes (Fondo + Ganado - Gastos):</span>
-                <span class="metric-value success" id="lblBalanceMes" style="font-size: 1.2rem;">$0.00</span>
+            <div class="metric-row" style="margin-top: 0; border-top: 1px dashed var(--border); padding-top: 4px;">
+                <span class="metric-label" style="font-weight: 500;">Balance Neto:</span>
+                <span class="metric-value success" id="lblBalanceMes" style="font-size: 1rem;">$0.00</span>
             </div>
         </div>
 
-        <!-- Estatus de Pagos -->
-        <div class="metric-row" style="margin-bottom: 15px; background: #0f172a; padding: 10px; border-radius: 10px; border: 1px solid var(--border);">
-            <div>
-                <span class="metric-label" style="display: block; color: var(--success);">Pagado Real: <strong id="lblTotalPagado">$0.00</strong></span>
-            </div>
-            <div style="text-align: right;">
-                <span class="metric-label" style="display: block;">Pendiente por Pagar:</span>
-                <span class="metric-value warning" id="lblPendientePagos" style="font-size: 1.1rem;">$0.00</span>
-            </div>
+        <div class="metric-row" style="margin-bottom: 12px; background: #0b0f19; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border);">
+            <span class="metric-label" style="color: var(--success);">Pagado Real: <strong id="lblTotalPagado">$0.00</strong></span>
+            <span class="metric-label" style="text-align: right;">Pendiente: <strong id="lblPendientePagos" class="warning" style="color: var(--warning);">$0.00</strong></span>
         </div>
 
         <div id="listaGastosChecks"></div>
         
-        <div style="display: flex; gap: 8px; margin-top: 10px;">
-            <button class="btn" style="background-color: #334155; flex: 1;" onclick="guardarGastosYChecks()">Guardar Cambios</button>
-            <button class="btn btn-success" style="flex: 1; margin-top:0;" onclick="abrirModalGasto()">+ Agregar Pago</button>
+        <div style="display: flex; gap: 6px; margin-top: 8px;">
+            <button class="btn" style="background-color: #1e293b; flex: 1; padding: 10px; font-size: 0.85rem;" onclick="guardarGastosYChecks()">Guardar</button>
+            <button class="btn btn-success" style="flex: 1; margin-top:0; padding: 10px; font-size: 0.85rem;" onclick="abrirModalGasto()">+ Agregar</button>
         </div>
     </div>
 
     <!-- Historial Detallado de Cierres Mensuales -->
     <div class="card">
-        <h2>Historial Detallado de Meses</h2>
+        <h2>Historial de Meses</h2>
         <div id="contenedorHistorialDetallado">
-            <p style="text-align: center; color: var(--text-muted);">Sin cierres mensuales guardados aún.</p>
+            <p style="text-align: center; color: var(--text-muted); font-size: 0.85rem; padding: 8px;">Sin cierres guardados</p>
         </div>
     </div>
 </div>
@@ -366,20 +387,20 @@
         <h2 id="modalGastoTitulo">Nuevo Pago</h2>
         <input type="hidden" id="modalGastoIdOriginal" value="">
         <div class="form-group">
-            <label>Nombre del Pago / Gasto</label>
-            <input type="text" id="modalNombre" placeholder="Ej. Internet, Luz...">
+            <label>Nombre</label>
+            <input type="text" id="modalNombre" placeholder="Ej. Internet">
         </div>
         <div class="form-group">
-            <label>Fecha o Día (Ej. Día 5, 12 de Octubre...)</label>
-            <input type="text" id="modalDia" placeholder="Ej. Día 15 o Quincenal">
+            <label>Fecha o Día</label>
+            <input type="text" id="modalDia" placeholder="Ej. Día 15">
         </div>
         <div class="form-group">
-            <label>Monto Estimado ($)</label>
+            <label>Monto ($)</label>
             <input type="number" id="modalMonto" placeholder="0.00">
         </div>
-        <div style="display: flex; gap: 8px;">
-            <button class="btn btn-success" onclick="guardarGastoModal()">Guardar</button>
-            <button class="btn" style="background-color: #475569;" onclick="cerrarModalGasto()">Cancelar</button>
+        <div style="display: flex; gap: 6px; margin-top: 14px;">
+            <button class="btn btn-success" style="padding: 10px;" onclick="guardarGastoModal()">Guardar</button>
+            <button class="btn" style="background-color: #1e293b; padding: 10px;" onclick="cerrarModalGasto()">Cancelar</button>
         </div>
     </div>
 </div>
@@ -391,7 +412,7 @@
         deudaInicialBase: 10000,
         semanasMes: [],
         cierresMensualesDetallados: [],
-        fondoInicialMes: 0, // Arrastre del mes anterior
+        fondoInicialMes: 0,
         plantillaGastos: [
             { id: 'gym', nombre: 'Gym', dia: 'Día 1' },
             { id: 'rentaRestante', nombre: 'Renta Restante', dia: 'Día 4' },
@@ -408,8 +429,8 @@
         ],
         gastosValores: {
             gym: 30, rentaRestante: 500, streaming: 20, celular: 65,
-            tcRoja: 0, tcGris: 0, carro: 446, seguroCarro: 106,
-            seguroVida: 46.77, gasolina: 50, salidas: 300, family: 0
+            tcRoja: 402.11, tcGris: 579.45, carro: 447.46, seguroCarro: 106,
+            seguroVida: 46.77, gasolina: 50, salidas: 300, family: 450
         },
         gastosPagados: {}
     };
@@ -528,8 +549,10 @@
                     </div>
                 </div>
                 <input type="number" id="val_${g.id}" value="${monto}" onfocus="this.select()" oninput="calcularTotalesGastos()">
-                <button class="btn-warning" onclick="abrirModalEditarGasto('${g.id}')" title="Editar">✏️</button>
-                <button class="btn-danger" onclick="eliminarGasto('${g.id}')" title="Eliminar">X</button>
+                <div class="gasto-actions">
+                    <button class="btn-icon" onclick="abrirModalEditarGasto('${g.id}')" title="Editar">✏️</button>
+                    <button class="btn-icon delete" onclick="eliminarGasto('${g.id}')" title="Eliminar">✕</button>
+                </div>
             `;
             contenedor.appendChild(div);
         });
@@ -597,7 +620,7 @@
         });
         recalcularDeudaTotal();
         guardarDB();
-        alert("¡Gastos y estatus guardados permanentemente!");
+        alert("¡Guardado con éxito!");
     }
 
     function abrirModalGasto() {
@@ -633,7 +656,7 @@
         let monto = parseFloat(document.getElementById('modalMonto').value) || 0;
 
         if(!nombre) {
-            alert("Por favor ingresa un nombre para el pago.");
+            alert("Ingresa un nombre.");
             return;
         }
 
@@ -661,7 +684,7 @@
     }
 
     function eliminarGasto(id) {
-        if(confirm("¿Estás seguro de eliminar este pago de la lista?")) {
+        if(confirm("¿Eliminar este pago?")) {
             db.plantillaGastos = db.plantillaGastos.filter(item => item.id !== id);
             delete db.gastosValores[id];
             delete db.gastosPagados[id];
@@ -704,7 +727,7 @@
         let sinAbono = document.getElementById('sinAbonoDeuda').checked;
 
         if(ingreso <= 0 && !sinAbono) {
-            alert("Por favor ingresa un monto válido recibido o marca la casilla de sin abono.");
+            alert("Ingresa un monto válido o marca sin abono.");
             return;
         }
 
@@ -730,7 +753,7 @@
             db.semanasMes[editIndex].abono = abono;
             db.semanasMes[editIndex].sinAbono = sinAbono;
             document.getElementById('editIndex').value = -1;
-            document.getElementById('btnProcesar').innerText = "Registrar y Calcular Abono";
+            document.getElementById('btnProcesar').innerText = "Registrar Semana";
         } else {
             db.semanasMes.push({
                 nombre: nombreSem,
@@ -767,7 +790,7 @@
     }
 
     function eliminarSemana(index) {
-        if(confirm("¿Estás seguro de eliminar esta semana?")) {
+        if(confirm("¿Eliminar esta semana?")) {
             db.semanasMes.splice(index, 1);
             recalcularDeudaTotal();
             actualizarTablaSemanas();
@@ -779,19 +802,19 @@
         let tbody = document.getElementById('tablaSemanas');
         tbody.innerHTML = "";
         if(db.semanasMes.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--text-muted);">Sin semanas registradas este mes</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--text-muted); padding: 12px;">Sin semanas registradas</td></tr>`;
             return;
         }
         db.semanasMes.forEach((s, idx) => {
             let tr = document.createElement('tr');
-            let txtAbono = s.sinAbono ? '<span style="color: var(--warning);">Sin Abono ($0.00)</span>' : `$${s.abono.toFixed(2)}`;
+            let txtAbono = s.sinAbono ? '<span style="color: var(--warning);">Sin Abono</span>' : `$${s.abono.toFixed(2)}`;
             tr.innerHTML = `
-                <td><strong>${s.nombre}</strong></td>
+                <td><strong style="font-size: 0.8rem;">${s.nombre}</strong></td>
                 <td>$${s.ingreso.toFixed(2)}</td>
-                <td style="font-weight: bold;">${txtAbono}</td>
-                <td>
-                    <button class="btn-warning" onclick="editarSemana(${idx})">Editar</button>
-                    <button class="btn-danger" onclick="eliminarSemana(${idx})">X</button>
+                <td style="font-weight: 500;">${txtAbono}</td>
+                <td style="text-align: right;">
+                    <button class="btn-icon" onclick="editarSemana(${idx})">✏️</button>
+                    <button class="btn-icon delete" onclick="eliminarSemana(${idx})">✕</button>
                 </td>
             `;
             tbody.appendChild(tr);
@@ -801,7 +824,7 @@
 
     function cerrarMes() {
         if(db.semanasMes.length === 0) {
-            alert("No hay semanas registradas en este mes para cerrar.");
+            alert("No hay semanas registradas para cerrar.");
             return;
         }
 
@@ -810,7 +833,6 @@
         let totalDeudaPagada = db.semanasMes.reduce((acc, curr) => acc + curr.abono, 0);
         let totalIngresosMes = (db.fondoInicialMes || 0) + totalGanadoSemanas;
         
-        // Calcular el excedente o remanente que sobró
         let remanenteSobrante = totalIngresosMes - totalGastado;
         if(remanenteSobrante < 0) remanenteSobrante = 0;
 
@@ -824,7 +846,6 @@
             semanasDetalle: [...db.semanasMes]
         });
 
-        // Limpiar el mes actual pero traspasar el remanente como fondo inicial del nuevo mes
         db.semanasMes = [];
         db.gastosPagados = {};
         db.fondoInicialMes = remanenteSobrante;
@@ -835,7 +856,7 @@
         actualizarHistorialDetallado();
         document.getElementById('resultadoCard').style.display = "none";
 
-        alert(`¡Mes cerrado con éxito!\nSe han arrastrado $${remanenteSobrante.toFixed(2)} como fondo inicial para el siguiente mes.`);
+        alert(`¡Mes cerrado con éxito!\nSe arrastraron $${remanenteSobrante.toFixed(2)} al siguiente mes.`);
         
         mesIndex++;
         if(mesIndex > 11) {
@@ -855,7 +876,7 @@
         contenedor.innerHTML = "";
         
         if(db.cierresMensualesDetallados.length === 0) {
-            contenedor.innerHTML = `<p style="text-align: center; color: var(--text-muted);">Sin cierres mensuales guardados aún.</p>`;
+            contenedor.innerHTML = `<p style="text-align: center; color: var(--text-muted); font-size: 0.85rem; padding: 8px;">Sin cierres guardados</p>`;
             return;
         }
 
@@ -865,12 +886,12 @@
             
             let htmlSemanas = "";
             c.semanasDetalle.forEach(sem => {
-                let txtAbonoHistorial = sem.sinAbono ? '<span style="color: var(--warning);">Sin Abono ($0)</span>' : `$${sem.abono.toFixed(2)}`;
+                let txtAbonoHist = sem.sinAbono ? 'Sin Abono' : `$${sem.abono.toFixed(2)}`;
                 htmlSemanas += `
                     <tr>
                         <td>${sem.nombre}</td>
                         <td>$${sem.ingreso.toFixed(2)}</td>
-                        <td>${txtAbonoHistorial}</td>
+                        <td>${txtAbonoHist}</td>
                     </tr>
                 `;
             });
@@ -878,15 +899,14 @@
             divMes.innerHTML = `
                 <div class="mes-historial-title">
                     <span>📅 ${c.mesNombre}</span>
-                    <span style="font-size: 0.85rem; color: var(--text-muted);">Deuda Pagada: <strong style="color: var(--success);">$${c.totalDeudaPagada.toFixed(2)}</strong></span>
+                    <span style="font-size: 0.8rem; color: var(--success);">Deuda: $${c.totalDeudaPagada.toFixed(2)}</span>
                 </div>
-                <div style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 8px;">
-                    Fondo Inicial: <strong>$${(c.fondoInicial || 0).toFixed(2)}</strong> | Ingresos Semanas: <strong>$${c.totalGanado.toFixed(2)}</strong><br>
-                    Gastos: <strong>$${c.totalGastado.toFixed(2)}</strong> | Sobrante Arrastrado: <strong style="color: var(--success);">$${(c.remanenteSobrante || 0).toFixed(2)}</strong>
+                <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 6px;">
+                    Fondo: $${(c.fondoInicial || 0).toFixed(2)} | Ganado: $${c.totalGanado.toFixed(2)} | Sobrante: <strong style="color: var(--success);">$${(c.remanenteSobrante || 0).toFixed(2)}</strong>
                 </div>
                 <table>
                     <thead>
-                        <tr><th>Semana (L-V)</th><th>Ingreso</th><th>Abono</th></tr>
+                        <tr><th>Semana</th><th>Ingreso</th><th>Abono</th></tr>
                     </thead>
                     <tbody>
                         ${htmlSemanas}
