@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Finanzas Diego PRO - Persistencia Permanente</title>
+    <title>Finanzas Diego PRO - Control Total de Pagos</title>
     <style>
         :root {
             --bg-dark: #0f172a;
@@ -137,6 +137,7 @@
             padding: 10px 12px;
             border-radius: 10px;
             margin-bottom: 10px;
+            gap: 8px;
         }
         .gasto-info {
             display: flex;
@@ -163,7 +164,7 @@
             color: var(--text-muted);
         }
         .gasto-item input[type="number"] {
-            width: 90px;
+            width: 85px;
             padding: 6px;
             font-size: 1rem;
             text-align: right;
@@ -203,6 +204,23 @@
             margin-bottom: 8px;
             display: flex;
             justify-content: space-between;
+        }
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal-content {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 400px;
+            border: 1px solid var(--border);
         }
     </style>
 </head>
@@ -263,7 +281,7 @@
         <button class="btn btn-success" style="margin-top: 15px;" onclick="cerrarMes()">Cerrar Mes Actual e Iniciar Siguiente</button>
     </div>
 
-    <!-- Control de Gastos del Mes con Checks -->
+    <!-- Control de Gastos del Mes con Checks y Gestión -->
     <div class="card">
         <h2>Control de Pagos del Mes</h2>
         <div class="metric-row" style="margin-bottom: 15px; background: #0f172a; padding: 10px; border-radius: 10px; border: 1px solid var(--border);">
@@ -278,7 +296,11 @@
         </div>
 
         <div id="listaGastosChecks"></div>
-        <button class="btn" style="background-color: #334155; margin-top: 10px;" onclick="guardarGastosYChecks()">Guardar Cambios de Gastos</button>
+        
+        <div style="display: flex; gap: 8px; margin-top: 10px;">
+            <button class="btn" style="background-color: #334155; flex: 1;" onclick="guardarGastosYChecks()">Guardar Cambios</button>
+            <button class="btn btn-success" style="flex: 1; margin-top:0;" onclick="abrirModalGasto()">+ Agregar Pago</button>
+        </div>
     </div>
 
     <!-- Historial Detallado de Cierres Mensuales -->
@@ -290,6 +312,30 @@
     </div>
 </div>
 
+<!-- Modal para Agregar / Editar Pago -->
+<div class="modal-overlay" id="modalGasto">
+    <div class="modal-content">
+        <h2 id="modalGastoTitulo">Nuevo Pago</h2>
+        <input type="hidden" id="modalGastoIdOriginal" value="">
+        <div class="form-group">
+            <label>Nombre del Pago / Gasto</label>
+            <input type="text" id="modalNombre" placeholder="Ej. Internet, Luz...">
+        </div>
+        <div class="form-group">
+            <label>Fecha o Día (Ej. Día 5, 12 de Octubre...)</label>
+            <input type="text" id="modalDia" placeholder="Ej. Día 15 o Quincenal">
+        </div>
+        <div class="form-group">
+            <label>Monto Estimado ($)</label>
+            <input type="number" id="modalMonto" placeholder="0.00">
+        </div>
+        <div style="display: flex; gap: 8px;">
+            <button class="btn btn-success" onclick="guardarGastoModal()">Guardar</button>
+            <button class="btn" style="background-color: #475569;" onclick="cerrarModalGasto()">Cancelar</button>
+        </div>
+    </div>
+</div>
+
 <script>
     const STORAGE_KEY = 'finanzas_diego_pro_master';
     
@@ -297,6 +343,20 @@
         deudaInicialBase: 10000,
         semanasMes: [],
         cierresMensualesDetallados: [],
+        plantillaGastos: [
+            { id: 'gym', nombre: 'Gym', dia: 'Día 1' },
+            { id: 'rentaRestante', nombre: 'Renta Restante', dia: 'Día 4' },
+            { id: 'streaming', nombre: 'Streaming', dia: 'Día 5' },
+            { id: 'celular', nombre: 'Celular', dia: 'Día 10' },
+            { id: 'tcRoja', nombre: 'TC Roja', dia: 'Día 12' },
+            { id: 'tcGris', nombre: 'TC Gris', dia: 'Día 22' },
+            { id: 'carro', nombre: 'Carro', dia: 'Día 25' },
+            { id: 'seguroCarro', nombre: 'Seguro Carro', dia: 'Día 27' },
+            { id: 'seguroVida', nombre: 'Seguro Vida', dia: 'Día 28' },
+            { id: 'gasolina', nombre: 'Gasolina', dia: 'Variable' },
+            { id: 'salidas', nombre: 'Salidas', dia: 'Variable' },
+            { id: 'family', nombre: 'Family', dia: 'Variable' }
+        ],
         gastosValores: {
             gym: 30, rentaRestante: 500, streaming: 20, celular: 65,
             tcRoja: 0, tcGris: 0, carro: 446, seguroCarro: 106,
@@ -311,21 +371,6 @@
     let mesIndex = fechaActualSistema.getMonth();
     let anioActual = fechaActualSistema.getFullYear();
 
-    let plantillaGastos = [
-        { id: 'gym', nombre: 'Gym', dia: 'Día 1' },
-        { id: 'rentaRestante', nombre: 'Renta Restante', dia: 'Día 4' },
-        { id: 'streaming', nombre: 'Streaming', dia: 'Día 5' },
-        { id: 'celular', nombre: 'Celular', dia: 'Día 10' },
-        { id: 'tcRoja', nombre: 'TC Roja', dia: 'Día 12' },
-        { id: 'tcGris', nombre: 'TC Gris', dia: 'Día 22' },
-        { id: 'carro', nombre: 'Carro', dia: 'Día 25' },
-        { id: 'seguroCarro', nombre: 'Seguro Carro', dia: 'Día 27' },
-        { id: 'seguroVida', nombre: 'Seguro Vida', dia: 'Día 28' },
-        { id: 'gasolina', nombre: 'Gasolina', dia: 'Variable' },
-        { id: 'salidas', nombre: 'Salidas', dia: 'Variable' },
-        { id: 'family', nombre: 'Family', dia: 'Variable' }
-    ];
-
     function cargarDB() {
         let guardado = localStorage.getItem(STORAGE_KEY);
         if (guardado) {
@@ -334,6 +379,9 @@
                 db.deudaInicialBase = parsed.deudaInicialBase !== undefined ? parsed.deudaInicialBase : 10000;
                 db.semanasMes = parsed.semanasMes || [];
                 db.cierresMensualesDetallados = parsed.cierresMensualesDetallados || [];
+                if (parsed.plantillaGastos) {
+                    db.plantillaGastos = parsed.plantillaGastos;
+                }
                 if (parsed.gastosValores) {
                     db.gastosValores = { ...db.gastosValores, ...parsed.gastosValores };
                 }
@@ -415,7 +463,7 @@
         let contenedor = document.getElementById('listaGastosChecks');
         contenedor.innerHTML = "";
         
-        plantillaGastos.forEach(g => {
+        db.plantillaGastos.forEach(g => {
             let monto = db.gastosValores[g.id] !== undefined ? db.gastosValores[g.id] : 0;
             let pagado = !!db.gastosPagados[g.id];
 
@@ -430,6 +478,8 @@
                     </div>
                 </div>
                 <input type="number" id="val_${g.id}" value="${monto}" onfocus="this.select()" oninput="calcularTotalesGastos()">
+                <button class="btn-warning" onclick="abrirModalEditarGasto('${g.id}')" title="Editar">✏️</button>
+                <button class="btn-danger" onclick="eliminarGasto('${g.id}')" title="Eliminar">X</button>
             `;
             contenedor.appendChild(div);
         });
@@ -447,7 +497,7 @@
         let totalGeneral = 0;
         let totalPagadoReal = 0;
 
-        plantillaGastos.forEach(g => {
+        db.plantillaGastos.forEach(g => {
             let input = document.getElementById(`val_${g.id}`);
             let val = input ? (parseFloat(input.value) || 0) : (db.gastosValores[g.id] || 0);
             let pagado = document.getElementById(`chk_${g.id}`) ? document.getElementById(`chk_${g.id}`).checked : false;
@@ -468,7 +518,7 @@
     }
 
     function guardarGastosYChecks() {
-        plantillaGastos.forEach(g => {
+        db.plantillaGastos.forEach(g => {
             let input = document.getElementById(`val_${g.id}`);
             if (input) {
                 db.gastosValores[g.id] = parseFloat(input.value) || 0;
@@ -476,7 +526,80 @@
         });
         recalcularDeudaTotal();
         guardarDB();
-        alert("¡Gastos y estatus de pagos guardados permanentemente!");
+        alert("¡Gastos y estatus guardados permanentemente!");
+    }
+
+    function abrirModalGasto() {
+        document.getElementById('modalGastoTitulo').innerText = "Nuevo Pago";
+        document.getElementById('modalGastoIdOriginal').value = "";
+        document.getElementById('modalNombre').value = "";
+        document.getElementById('modalDia').value = "";
+        document.getElementById('modalMonto').value = "";
+        document.getElementById('modalGasto').style.display = "flex";
+    }
+
+    function abrirModalEditarGasto(id) {
+        let g = db.plantillaGastos.find(item => item.id === id);
+        if(!g) return;
+        let monto = db.gastosValores[id] || 0;
+
+        document.getElementById('modalGastoTitulo').innerText = "Editar Pago";
+        document.getElementById('modalGastoIdOriginal').value = id;
+        document.getElementById('modalNombre').value = g.nombre;
+        document.getElementById('modalDia').value = g.dia;
+        document.getElementById('modalMonto').value = monto;
+        document.getElementById('modalGasto').style.display = "flex";
+    }
+
+    function cerrarModalGasto() {
+        document.getElementById('modalGasto').style.display = "none";
+    }
+
+    function guardarGastoModal() {
+        let idOriginal = document.getElementById('modalGastoIdOriginal').value;
+        let nombre = document.getElementById('modalNombre').value.trim();
+        let dia = document.getElementById('modalDia').value.trim();
+        let monto = parseFloat(document.getElementById('modalMonto').value) || 0;
+
+        if(!nombre) {
+            alert("Por favor ingresa un nombre para el pago.");
+            return;
+        }
+
+        if(idOriginal) {
+            // Editar existente
+            let g = db.plantillaGastos.find(item => item.id === idOriginal);
+            if(g) {
+                g.nombre = nombre;
+                g.dia = dia || 'Variable';
+            }
+            db.gastosValores[idOriginal] = monto;
+        } else {
+            // Crear nuevo
+            let nuevoId = 'gasto_' + Date.now();
+            db.plantillaGastos.push({
+                id: nuevoId,
+                nombre: nombre,
+                dia: dia || 'Variable'
+            });
+            db.gastosValores[nuevoId] = monto;
+        }
+
+        guardarDB();
+        cerrarModalGasto();
+        renderizarGastosChecks();
+        recalcularDeudaTotal();
+    }
+
+    function eliminarGasto(id) {
+        if(confirm("¿Estás seguro de eliminar este pago de la lista?")) {
+            db.plantillaGastos = db.plantillaGastos.filter(item => item.id !== id);
+            delete db.gastosValores[id];
+            delete db.gastosPagados[id];
+            guardarDB();
+            renderizarGastosChecks();
+            recalcularDeudaTotal();
+        }
     }
 
     function recalcularDeudaTotal() {
