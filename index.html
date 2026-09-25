@@ -91,6 +91,29 @@
         input:focus, select:focus {
             border-color: var(--primary);
         }
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: #0f172a;
+            padding: 12px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            margin-bottom: 15px;
+            cursor: pointer;
+        }
+        .checkbox-group input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            accent-color: var(--warning);
+            cursor: pointer;
+        }
+        .checkbox-group label {
+            margin-bottom: 0;
+            color: var(--warning);
+            font-weight: 500;
+            cursor: pointer;
+        }
         .metric-row {
             display: flex;
             justify-content: space-between;
@@ -254,6 +277,10 @@
         <div class="form-group">
             <label>Descuento renta automático de nómina</label>
             <input type="number" id="rentaNomina" value="250" readonly>
+        </div>
+        <div class="checkbox-group">
+            <input type="checkbox" id="sinAbonoDeuda">
+            <label for="sinAbonoDeuda">⚠️ No colaborar con la deuda esta semana (Abono $0)</label>
         </div>
         <button class="btn" id="btnProcesar" onclick="procesarSemana()">Registrar y Calcular Abono</button>
     </div>
@@ -567,7 +594,6 @@
         }
 
         if(idOriginal) {
-            // Editar existente
             let g = db.plantillaGastos.find(item => item.id === idOriginal);
             if(g) {
                 g.nombre = nombre;
@@ -575,7 +601,6 @@
             }
             db.gastosValores[idOriginal] = monto;
         } else {
-            // Crear nuevo
             let nuevoId = 'gasto_' + Date.now();
             db.plantillaGastos.push({
                 id: nuevoId,
@@ -612,10 +637,13 @@
 
         db.semanasMes.forEach(s => {
             s.gastos = totalApartadoSemanal;
-            let abono = s.ingreso - totalApartadoSemanal;
-            if(abono < 0) abono = 0;
-            s.abono = abono;
-            deudaTemp -= abono;
+            if (s.sinAbono) {
+                s.abono = 0;
+            } else {
+                let abono = s.ingreso - totalApartadoSemanal;
+                s.abono = abono < 0 ? 0 : abono;
+            }
+            deudaTemp -= s.abono;
         });
 
         if(deudaTemp < 0) deudaTemp = 0;
@@ -629,8 +657,10 @@
         let nombreSem = objetoSemanaInfo ? objetoSemanaInfo.texto : idSemanaSeleccionada;
 
         let ingreso = parseFloat(document.getElementById('ingresoSemanal').value) || 0;
-        if(ingreso <= 0) {
-            alert("Por favor ingresa un monto válido recibido.");
+        let sinAbono = document.getElementById('sinAbonoDeuda').checked;
+
+        if(ingreso <= 0 && !sinAbono) {
+            alert("Por favor ingresa un monto válido recibido o marca la casilla de sin abono.");
             return;
         }
 
@@ -640,8 +670,11 @@
         let nominaRenta = parseFloat(document.getElementById('rentaNomina').value) || 0;
         let totalApartadoSemanal = gastoSemanalBase + nominaRenta;
 
-        let abono = ingreso - totalApartadoSemanal;
-        if (abono < 0) abono = 0;
+        let abono = 0;
+        if (!sinAbono) {
+            abono = ingreso - totalApartadoSemanal;
+            if (abono < 0) abono = 0;
+        }
 
         let editIndex = parseInt(document.getElementById('editIndex').value);
 
@@ -651,6 +684,7 @@
             db.semanasMes[editIndex].ingreso = ingreso;
             db.semanasMes[editIndex].gastos = totalApartadoSemanal;
             db.semanasMes[editIndex].abono = abono;
+            db.semanasMes[editIndex].sinAbono = sinAbono;
             document.getElementById('editIndex').value = -1;
             document.getElementById('btnProcesar').innerText = "Registrar y Calcular Abono";
         } else {
@@ -659,7 +693,8 @@
                 idSemana: idSemanaSeleccionada,
                 ingreso: ingreso,
                 gastos: totalApartadoSemanal,
-                abono: abono
+                abono: abono,
+                sinAbono: sinAbono
             });
         }
 
@@ -673,6 +708,7 @@
 
         actualizarTablaSemanas();
         document.getElementById('ingresoSemanal').value = "";
+        document.getElementById('sinAbonoDeuda').checked = false;
         seleccionarSemanaAutomatica();
     }
 
@@ -680,6 +716,7 @@
         let s = db.semanasMes[index];
         document.getElementById('nombreSemana').value = s.idSemana || listaSemanasMes[0].id;
         document.getElementById('ingresoSemanal').value = s.ingreso;
+        document.getElementById('sinAbonoDeuda').checked = !!s.sinAbono;
         document.getElementById('editIndex').value = index;
         document.getElementById('btnProcesar').innerText = "Actualizar Semana";
         window.scrollTo({top: 0, behavior: 'smooth'});
@@ -703,10 +740,11 @@
         }
         db.semanasMes.forEach((s, idx) => {
             let tr = document.createElement('tr');
+            let txtAbono = s.sinAbono ? '<span style="color: var(--warning);">Sin Abono ($0.00)</span>' : `$${s.abono.toFixed(2)}`;
             tr.innerHTML = `
                 <td><strong>${s.nombre}</strong></td>
                 <td>$${s.ingreso.toFixed(2)}</td>
-                <td style="color: var(--success); font-weight: bold;">$${s.abono.toFixed(2)}</td>
+                <td style="font-weight: bold;">${txtAbono}</td>
                 <td>
                     <button class="btn-warning" onclick="editarSemana(${idx})">Editar</button>
                     <button class="btn-danger" onclick="eliminarSemana(${idx})">X</button>
@@ -772,11 +810,12 @@
             
             let htmlSemanas = "";
             c.semanasDetalle.forEach(sem => {
+                let txtAbonoHistorial = sem.sinAbono ? '<span style="color: var(--warning);">Sin Abono ($0)</span>' : `$${sem.abono.toFixed(2)}`;
                 htmlSemanas += `
                     <tr>
                         <td>${sem.nombre}</td>
                         <td>$${sem.ingreso.toFixed(2)}</td>
-                        <td style="color: var(--success);">$${sem.abono.toFixed(2)}</td>
+                        <td>${txtAbonoHistorial}</td>
                     </tr>
                 `;
             });
