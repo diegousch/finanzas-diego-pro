@@ -310,11 +310,28 @@
 
     <!-- Control de Gastos del Mes con Checks y Gestión -->
     <div class="card">
-        <h2>Control de Pagos del Mes</h2>
+        <h2>Control de Pagos y Ganancias del Mes</h2>
+        
+        <!-- Resumen Financiero del Mes -->
+        <div style="margin-bottom: 15px; background: #0f172a; padding: 12px; border-radius: 10px; border: 1px solid var(--border);">
+            <div class="metric-row" style="margin-top: 0; margin-bottom: 6px;">
+                <span class="metric-label">Total Ganado (Semanas):</span>
+                <span class="metric-value primary" id="lblTotalGanadoMes" style="font-size: 1.1rem;">$0.00</span>
+            </div>
+            <div class="metric-row" style="margin-top: 0; margin-bottom: 6px;">
+                <span class="metric-label">Total Gastos Estimados:</span>
+                <span class="metric-value warning" id="lblTotalGastos" style="font-size: 1.1rem;">$0.00</span>
+            </div>
+            <div class="metric-row" style="margin-top: 0; border-top: 1px dashed var(--border); padding-top: 6px;">
+                <span class="metric-label">Balance Mes (Ganado - Gastos):</span>
+                <span class="metric-value success" id="lblBalanceMes" style="font-size: 1.2rem;">$0.00</span>
+            </div>
+        </div>
+
+        <!-- Estatus de Pagos -->
         <div class="metric-row" style="margin-bottom: 15px; background: #0f172a; padding: 10px; border-radius: 10px; border: 1px solid var(--border);">
             <div>
-                <span class="metric-label" style="display: block;">Total Gastos: <strong id="lblTotalGastos">$0.00</strong></span>
-                <span class="metric-label" style="display: block; color: var(--success); margin-top: 3px;">Pagado Real: <strong id="lblTotalPagado">$0.00</strong></span>
+                <span class="metric-label" style="display: block; color: var(--success);">Pagado Real: <strong id="lblTotalPagado">$0.00</strong></span>
             </div>
             <div style="text-align: right;">
                 <span class="metric-label" style="display: block;">Pendiente por Pagar:</span>
@@ -541,7 +558,25 @@
         document.getElementById('lblTotalPagado').innerText = "$" + totalPagadoReal.toFixed(2);
         document.getElementById('lblPendientePagos').innerText = "$" + pendiente.toFixed(2);
 
+        // Actualizar también el balance de ingresos vs gastos
+        actualizarResumenGanancias(totalGeneral);
+
         return totalGeneral;
+    }
+
+    function actualizarResumenGanancias(totalGastosParam) {
+        let totalGanado = db.semanasMes.reduce((acc, curr) => acc + curr.ingreso, 0);
+        let balance = totalGanado - totalGastosParam;
+
+        document.getElementById('lblTotalGanadoMes').innerText = "$" + totalGanado.toFixed(2);
+        let elBalance = document.getElementById('lblBalanceMes');
+        elBalance.innerText = "$" + balance.toFixed(2);
+        
+        if (balance >= 0) {
+            elBalance.className = "metric-value success";
+        } else {
+            elBalance.className = "metric-value danger";
+        }
     }
 
     function guardarGastosYChecks() {
@@ -752,6 +787,7 @@
             `;
             tbody.appendChild(tr);
         });
+        calcularTotalesGastos();
     }
 
     function cerrarMes() {
