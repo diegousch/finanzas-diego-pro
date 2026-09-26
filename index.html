@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Finanzas Diego PRO - Historial y Semanas Editables</title>
+    <title>Finanzas Diego PRO - Control y Edición Avanzada</title>
     <style>
         :root {
             --bg-dark: #0b0f19;
@@ -487,18 +487,15 @@
             <label>Fondo Inicial ($)</label>
             <input type="number" id="histFondoInicial" step="0.01">
         </div>
-        <div class="form-group">
-            <label>Sobrante Arrastrado ($)</label>
-            <input type="number" id="histSobrante" step="0.01">
-        </div>
 
-        <div style="margin-top: 12px; font-size: 0.8rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase;">
-            Semanas de este mes:
+        <div style="margin-top: 12px; font-size: 0.8rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; display: flex; justify-content: space-between; align-items: center;">
+            <span>Semanas Registradas:</span>
+            <button class="btn-success" style="font-size: 0.75rem; padding: 4px 8px; width: auto;" onclick="agregarSemanaHistorialModal()">+ Agregar Semana</button>
         </div>
         <div id="historialSemanasLista" style="margin-top: 6px; margin-bottom: 12px;"></div>
 
         <div style="display: flex; gap: 6px; margin-top: 14px;">
-            <button class="btn btn-success" style="padding: 10px;" onclick="guardarEdicionHistorial()">Guardar Cambios</button>
+            <button class="btn btn-success" style="padding: 10px;" onclick="guardarEdicionHistorial()">Guardar Cambios y Recalcular</button>
             <button class="btn" style="background-color: #1e293b; padding: 10px;" onclick="cerrarModalHistorial()">Cerrar</button>
         </div>
     </div>
@@ -1101,7 +1098,6 @@
         document.getElementById('editHistIndex').value = index;
         document.getElementById('histNombreMes').value = c.mesNombre;
         document.getElementById('histFondoInicial').value = c.fondoInicial || 0;
-        document.getElementById('histSobrante').value = c.remanenteSobrante || 0;
         
         renderizarSemanasModalHistorial(c.semanasDetalle, index);
         document.getElementById('modalEditarHistorial').style.display = "flex";
@@ -1122,7 +1118,7 @@
             div.innerHTML = `
                 <div style="display: flex; flex-direction: column; flex: 1; overflow: hidden;">
                     <span style="font-size: 0.8rem; font-weight: 500;">${sem.nombre}</span>
-                    <span style="font-size: 0.75rem; color: var(--text-muted);">Neto: $${neto.toFixed(2)}</span>
+                    <span style="font-size: 0.75rem; color: var(--text-muted);">Neto: $<input type="number" value="${neto.toFixed(2)}" style="width: 70px; padding: 2px; font-size: 0.75rem; display: inline;" onchange="actualizarMontoSemanaHistorial(${mesIndex}, ${sIdx}, this.value)"></span>
                 </div>
                 <button class="btn-icon delete" onclick="eliminarSemanaHistorial(${mesIndex}, ${sIdx})" title="Eliminar Semana">✕</button>
             `;
@@ -1130,20 +1126,38 @@
         });
     }
 
+    function actualizarMontoSemanaHistorial(mesIdx, semIdx, nuevoNetoVal) {
+        let c = db.cierresMensualesDetallados[mesIdx];
+        let val = parseFloat(nuevoNetoVal) || 0;
+        c.semanasDetalle[semIdx].ingresoNeto = val;
+        c.semanasDetalle[semIdx].ingresoBruto = val + 250;
+    }
+
+    function agregarSemanaHistorialModal() {
+        let mesIdx = parseInt(document.getElementById('editHistIndex').value);
+        let c = db.cierresMensualesDetallados[mesIdx];
+        let nombreSem = prompt("Nombre de la semana (Ej. Semana 5):", "Semana Adicional");
+        if(!nombreSem) return;
+        let montoBruto = parseFloat(prompt("Monto bruto recibido en esta semana:", "1200")) || 0;
+        let neto = montoBruto - 250;
+        if(neto < 0) neto = 0;
+
+        c.semanasDetalle.push({
+            nombre: nombreSem,
+            ingresoBruto: montoBruto,
+            ingresoNeto: neto,
+            abono: 0,
+            sinAbono: false
+        });
+
+        renderizarSemanasModalHistorial(c.semanasDetalle, mesIdx);
+    }
+
     function eliminarSemanaHistorial(mesIdx, semIdx) {
         if(confirm("¿Estás seguro de eliminar esta semana del historial?")) {
             let c = db.cierresMensualesDetallados[mesIdx];
             c.semanasDetalle.splice(semIdx, 1);
-            
-            // Recalcular totales del mes cerrado
-            let nuevoTotalGanado = c.semanasDetalle.reduce((acc, curr) => acc + (curr.ingresoNeto !== undefined ? curr.ingresoNeto : (curr.ingreso - 250)), 0);
-            let nuevoTotalDeuda = c.semanasDetalle.reduce((acc, curr) => acc + curr.abono, 0);
-            c.totalGanado = nuevoTotalGanado;
-            c.totalDeudaPagada = nuevoTotalDeuda;
-            
-            guardarDB();
             renderizarSemanasModalHistorial(c.semanasDetalle, mesIdx);
-            actualizarHistorialDetallado();
         }
     }
 
@@ -1155,14 +1169,31 @@
         let index = parseInt(document.getElementById('editHistIndex').value);
         if(isNaN(index) || !db.cierresMensualesDetallados[index]) return;
 
-        db.cierresMensualesDetallados[index].mesNombre = document.getElementById('histNombreMes').value.trim() || db.cierresMensualesDetallados[index].mesNombre;
-        db.cierresMensualesDetallados[index].fondoInicial = parseFloat(document.getElementById('histFondoInicial').value) || 0;
-        db.cierresMensualesDetallados[index].remanenteSobrante = parseFloat(document.getElementById('histSobrante').value) || 0;
+        let c = db.cierresMensualesDetallados[index];
+        c.mesNombre = document.getElementById('histNombreMes').value.trim() || c.mesNombre;
+        c.fondoInicial = parseFloat(document.getElementById('histFondoInicial').value) || 0;
+
+        // Recalcular automáticamente los totales del mes y el remanente sobrante basado en las semanas actuales
+        let totalGanadoSemanas = c.semanasDetalle.reduce((acc, curr) => acc + (curr.ingresoNeto !== undefined ? curr.ingresoNeto : (curr.ingreso - 250)), 0);
+        let totalIngresosMes = c.fondoInicial + totalGanadoSemanas;
+        
+        // Asumimos los gastos totales registrados de ese mes o recalculamos
+        let remanenteSobrante = totalIngresosMes - (c.totalGastos || 0);
+        if(remanenteSobrante < 0) remanenteSobrante = 0;
+
+        c.totalGanado = totalGanadoSemanas;
+        c.remanenteSobrante = remanenteSobrante;
+
+        // Si este mes era el último cerrado, actualizar también el fondo inicial del mes actual en curso
+        if(index === db.cierresMensualesDetallados.length - 1) {
+            db.fondoInicialMes = remanenteSobrante;
+        }
 
         guardarDB();
         cerrarModalHistorial();
         actualizarHistorialDetallado();
-        alert("¡Historial del mes actualizado con éxito!");
+        renderizarCalendario();
+        alert("¡Historial y montos recalculados con éxito!");
     }
 
     function eliminarMesHistorial(index) {
@@ -1188,7 +1219,7 @@
             
             let htmlSemanas = "";
             c.semanasDetalle.forEach(sem => {
-                let txtAbonoHist = sem.sinAbono ? 'Sin Abono' : `$${sem.abono.toFixed(2)}`;
+                let txtAbonoHist = sem.sinAbono ? 'Sin Abono' : `$${(sem.abono || 0).toFixed(2)}`;
                 let netoSem = sem.ingresoNeto !== undefined ? sem.ingresoNeto : (sem.ingreso - 250);
                 htmlSemanas += `
                     <tr>
@@ -1208,7 +1239,7 @@
                     </div>
                 </div>
                 <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 6px;">
-                    Fondo: $${(c.fondoInicial || 0).toFixed(2)} | Ganado Neto: $${c.totalGanado.toFixed(2)} | Sobrante: <strong style="color: var(--success);">$${(c.remanenteSobrante || 0).toFixed(2)}</strong>
+                    Fondo: $${(c.fondoInicial || 0).toFixed(2)} | Ganado Neto: $${(c.totalGanado || 0).toFixed(2)} | Sobrante: <strong style="color: var(--success);">$${(c.remanenteSobrante || 0).toFixed(2)}</strong>
                 </div>
                 <table>
                     <thead>
