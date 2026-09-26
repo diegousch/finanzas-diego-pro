@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Finanzas Diego PRO - Calendario y Historial Editable</title>
+    <title>Finanzas Diego PRO - Historial y Semanas Editables</title>
     <style>
         :root {
             --bg-dark: #0b0f19;
@@ -312,9 +312,11 @@
             background: var(--card-bg);
             padding: 20px;
             border-radius: 14px;
-            width: 85%;
-            max-width: 340px;
+            width: 90%;
+            max-width: 380px;
             border: 1px solid var(--border);
+            max-height: 90vh;
+            overflow-y: auto;
         }
     </style>
 </head>
@@ -472,9 +474,9 @@
     </div>
 </div>
 
-<!-- Modal para Editar Mes del Historial -->
+<!-- Modal para Editar Mes del Historial y sus Semanas -->
 <div class="modal-overlay" id="modalEditarHistorial">
-    <div class="modal-content" style="max-width: 360px;">
+    <div class="modal-content">
         <h2>Editar Mes Cerrado</h2>
         <input type="hidden" id="editHistIndex" value="">
         <div class="form-group">
@@ -489,9 +491,15 @@
             <label>Sobrante Arrastrado ($)</label>
             <input type="number" id="histSobrante" step="0.01">
         </div>
+
+        <div style="margin-top: 12px; font-size: 0.8rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase;">
+            Semanas de este mes:
+        </div>
+        <div id="historialSemanasLista" style="margin-top: 6px; margin-bottom: 12px;"></div>
+
         <div style="display: flex; gap: 6px; margin-top: 14px;">
             <button class="btn btn-success" style="padding: 10px;" onclick="guardarEdicionHistorial()">Guardar Cambios</button>
-            <button class="btn" style="background-color: #1e293b; padding: 10px;" onclick="cerrarModalHistorial()">Cancelar</button>
+            <button class="btn" style="background-color: #1e293b; padding: 10px;" onclick="cerrarModalHistorial()">Cerrar</button>
         </div>
     </div>
 </div>
@@ -1094,7 +1102,49 @@
         document.getElementById('histNombreMes').value = c.mesNombre;
         document.getElementById('histFondoInicial').value = c.fondoInicial || 0;
         document.getElementById('histSobrante').value = c.remanenteSobrante || 0;
+        
+        renderizarSemanasModalHistorial(c.semanasDetalle, index);
         document.getElementById('modalEditarHistorial').style.display = "flex";
+    }
+
+    function renderizarSemanasModalHistorial(semanasArr, mesIndex) {
+        let contenedor = document.getElementById('historialSemanasLista');
+        contenedor.innerHTML = "";
+        if(!semanasArr || semanasArr.length === 0) {
+            contenedor.innerHTML = `<p style="color: var(--text-muted); font-size: 0.8rem;">Sin semanas registradas en este mes.</p>`;
+            return;
+        }
+
+        semanasArr.forEach((sem, sIdx) => {
+            let neto = sem.ingresoNeto !== undefined ? sem.ingresoNeto : (sem.ingreso - 250);
+            let div = document.createElement('div');
+            div.className = "gasto-item-cal";
+            div.innerHTML = `
+                <div style="display: flex; flex-direction: column; flex: 1; overflow: hidden;">
+                    <span style="font-size: 0.8rem; font-weight: 500;">${sem.nombre}</span>
+                    <span style="font-size: 0.75rem; color: var(--text-muted);">Neto: $${neto.toFixed(2)}</span>
+                </div>
+                <button class="btn-icon delete" onclick="eliminarSemanaHistorial(${mesIndex}, ${sIdx})" title="Eliminar Semana">✕</button>
+            `;
+            contenedor.appendChild(div);
+        });
+    }
+
+    function eliminarSemanaHistorial(mesIdx, semIdx) {
+        if(confirm("¿Estás seguro de eliminar esta semana del historial?")) {
+            let c = db.cierresMensualesDetallados[mesIdx];
+            c.semanasDetalle.splice(semIdx, 1);
+            
+            // Recalcular totales del mes cerrado
+            let nuevoTotalGanado = c.semanasDetalle.reduce((acc, curr) => acc + (curr.ingresoNeto !== undefined ? curr.ingresoNeto : (curr.ingreso - 250)), 0);
+            let nuevoTotalDeuda = c.semanasDetalle.reduce((acc, curr) => acc + curr.abono, 0);
+            c.totalGanado = nuevoTotalGanado;
+            c.totalDeudaPagada = nuevoTotalDeuda;
+            
+            guardarDB();
+            renderizarSemanasModalHistorial(c.semanasDetalle, mesIdx);
+            actualizarHistorialDetallado();
+        }
     }
 
     function cerrarModalHistorial() {
@@ -1153,7 +1203,7 @@
                 <div class="mes-historial-title">
                     <span>📅 ${c.mesNombre}</span>
                     <div>
-                        <button class="btn-icon" onclick="abrirModalEditarHistorial(${idx})" title="Editar Mes">✏️</button>
+                        <button class="btn-icon" onclick="abrirModalEditarHistorial(${idx})" title="Editar Mes y Semanas">✏️</button>
                         <button class="btn-icon delete" onclick="eliminarMesHistorial(${idx})" title="Eliminar Mes">✕</button>
                     </div>
                 </div>
