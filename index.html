@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Finanzas Diego PRO - Control y Edición Avanzada</title>
+    <title>Finanzas Diego PRO - Historial Sincronizado</title>
     <style>
         :root {
             --bg-dark: #0b0f19;
@@ -326,7 +326,7 @@
     <header>
         <div class="badge-mes" id="lblMesActual">Cargando...</div>
         <h1>Finanzas PRO</h1>
-        <p>Control Total y Edición Histórica</p>
+        <p>Control Total Sincronizado</p>
     </header>
 
     <!-- Estado de Deuda -->
@@ -413,7 +413,7 @@
         <!-- Resumen Financiero -->
         <div style="margin-top: 14px; background: #0b0f19; padding: 10px; border-radius: 8px; border: 1px solid var(--border);">
             <div class="metric-row" style="margin-top: 0; margin-bottom: 4px;">
-                <span class="metric-label">Fondo Inicial (Arrastre):</span>
+                <span class="metric-label">Fondo Inicial (Arrastre Automático):</span>
                 <span class="metric-value success" id="lblFondoInicial" style="font-size: 0.9rem;">$0.00</span>
             </div>
             <div class="metric-row" style="margin-top: 0; margin-bottom: 4px;">
@@ -571,6 +571,18 @@
         localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
     }
 
+    function sincronizarFondoArrastre() {
+        if (db.cierresMensualesDetallados.length > 0) {
+            // El fondo inicial del mes actual toma el sobrante del último mes registrado en el historial
+            let ultimoMes = db.cierresMensualesDetallados[db.cierresMensualesDetallados.length - 1];
+            db.fondoInicialMes = ultimoMes.remanenteSobrante || 0;
+        } else {
+            // Si no hay ningún mes en el historial, el arrastre es 0 automáticamente
+            db.fondoInicialMes = 0;
+        }
+        guardarDB();
+    }
+
     function obtenerSemanasLaborables(year, month) {
         let semanas = [];
         let numSemana = 1;
@@ -635,6 +647,7 @@
     }
 
     function renderizarCalendario() {
+        sincronizarFondoArrastre();
         document.getElementById('calMesAnioTitulo').innerText = `${nombresMeses[mesIndex]} ${anioActual}`;
         let grid = document.getElementById('calendarGrid');
         grid.innerHTML = "";
@@ -1068,8 +1081,8 @@
 
         db.semanasMes = [];
         db.gastosPagados = {};
-        db.fondoInicialMes = remanenteSobrante;
         
+        sincronizarFondoArrastre();
         guardarDB();
 
         actualizarTablaSemanas();
@@ -1173,22 +1186,16 @@
         c.mesNombre = document.getElementById('histNombreMes').value.trim() || c.mesNombre;
         c.fondoInicial = parseFloat(document.getElementById('histFondoInicial').value) || 0;
 
-        // Recalcular automáticamente los totales del mes y el remanente sobrante basado en las semanas actuales
         let totalGanadoSemanas = c.semanasDetalle.reduce((acc, curr) => acc + (curr.ingresoNeto !== undefined ? curr.ingresoNeto : (curr.ingreso - 250)), 0);
         let totalIngresosMes = c.fondoInicial + totalGanadoSemanas;
         
-        // Asumimos los gastos totales registrados de ese mes o recalculamos
         let remanenteSobrante = totalIngresosMes - (c.totalGastos || 0);
         if(remanenteSobrante < 0) remanenteSobrante = 0;
 
         c.totalGanado = totalGanadoSemanas;
         c.remanenteSobrante = remanenteSobrante;
 
-        // Si este mes era el último cerrado, actualizar también el fondo inicial del mes actual en curso
-        if(index === db.cierresMensualesDetallados.length - 1) {
-            db.fondoInicialMes = remanenteSobrante;
-        }
-
+        sincronizarFondoArrastre();
         guardarDB();
         cerrarModalHistorial();
         actualizarHistorialDetallado();
@@ -1197,10 +1204,16 @@
     }
 
     function eliminarMesHistorial(index) {
-        if(confirm("¿Estás seguro de eliminar este registro del historial?")) {
+        if(confirm("¿Estás seguro de eliminar este registro del historial? Se borrará toda su información y se recalcularán los arrastres.")) {
             db.cierresMensualesDetallados.splice(index, 1);
+            
+            // Sincronizar el fondo de arrastre automáticamente al eliminar
+            sincronizarFondoArrastre();
             guardarDB();
+            
             actualizarHistorialDetallado();
+            renderizarCalendario();
+            recalcularDeudaTotal();
         }
     }
 
@@ -1263,6 +1276,7 @@
                 if(s.ingresoNeto < 0) s.ingresoNeto = 0;
             }
         });
+        sincronizarFondoArrastre();
         document.getElementById('lblMesActual').innerText = `Mes: ${nombresMeses[mesIndex]} ${anioActual}`;
         inicializarSelectSemanas();
         renderizarCalendario();
