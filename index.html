@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Finanzas Diego PRO - Historial Sincronizado</title>
+    <title>Finanzas Diego PRO - Control Sincronizado</title>
     <style>
         :root {
             --bg-dark: #0b0f19;
@@ -150,6 +150,18 @@
         }
         .btn:hover { opacity: 0.9; }
         .btn-success { background-color: var(--success); }
+
+        /* Controles de Navegación de Meses */
+        .month-navigator {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            background: #0b0f19;
+            padding: 6px 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
 
         /* Estilos del Calendario Interactivo */
         .calendar-header {
@@ -383,11 +395,13 @@
 
     <!-- Calendario y Control de Pagos Interactivo -->
     <div class="card">
-        <h2>Calendario de Pagos del Mes</h2>
+        <h2>Calendario de Pagos</h2>
         
-        <div class="calendar-header">
-            <span id="calMesAnioTitulo">Octubre 2026</span>
-            <span style="font-size: 0.75rem; color: var(--text-muted);">Toca un día para ver/pagar</span>
+        <!-- Navegador manual para que puedas ver Septiembre u Octubre cuando lo necesites -->
+        <div class="month-navigator">
+            <button class="btn-icon" onclick="cambiarMesVista(-1)" style="font-weight:bold;">◀ Mes Ant.</button>
+            <span id="calMesAnioTitulo" style="font-size: 0.85rem; font-weight: 600; color: var(--primary);">Octubre 2026</span>
+            <button class="btn-icon" onclick="cambiarMesVista(1)" style="font-weight:bold;">Mes Sig. ▶</button>
         </div>
 
         <div class="calendar-grid" id="calendarGrid"></div>
@@ -534,8 +548,14 @@
     const nombresMeses = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
     
     let fechaActualSistema = new Date();
-    let mesIndex = fechaActualSistema.getMonth();
-    let anioActual = fechaActualSistema.getFullYear();
+    // Controlamos el mes activo de trabajo de semanas (ej. septiembre si estamos cerrando septiembre)
+    let mesIndexTrabajo = 8; // Septiembre por defecto para tus semanas actuales
+    let anioTrabajo = 2026;
+
+    // Controlamos el mes visual del calendario por separado para que puedas ver Septiembre u Octubre libremente
+    let mesIndexVisual = 9; // Octubre por defecto para ver tus pagos del mes que entra
+    let anioVisual = 2026;
+
     let diaSeleccionadoCalendario = null;
 
     function cargarDB() {
@@ -573,11 +593,9 @@
 
     function sincronizarFondoArrastre() {
         if (db.cierresMensualesDetallados.length > 0) {
-            // El fondo inicial del mes actual toma el sobrante del último mes registrado en el historial
             let ultimoMes = db.cierresMensualesDetallados[db.cierresMensualesDetallados.length - 1];
             db.fondoInicialMes = ultimoMes.remanenteSobrante || 0;
         } else {
-            // Si no hay ningún mes en el historial, el arrastre es 0 automáticamente
             db.fondoInicialMes = 0;
         }
         guardarDB();
@@ -596,7 +614,7 @@
             }
         }
 
-        while (d.getMonth() === month) {
+        while (d.getMonth() === month || (numSemana === 4 && d.getMonth() === month + 1)) {
             let inicioSemanaDate = new Date(d);
             let finSemanaDate = new Date(d);
             finSemanaDate.setDate(finSemanaDate.getDate() + 4);
@@ -617,9 +635,10 @@
         return semanas;
     }
 
-    let listaSemanasMes = obtenerSemanasLaborables(anioActual, mesIndex);
+    let listaSemanasMes = obtenerSemanasLaborables(anioTrabajo, mesIndexTrabajo);
 
     function inicializarSelectSemanas() {
+        document.getElementById('lblMesActual').innerText = `Cerrando: ${nombresMeses[mesIndexTrabajo]} ${anioTrabajo}`;
         let select = document.getElementById('nombreSemana');
         select.innerHTML = "";
         listaSemanasMes.forEach(sem => {
@@ -646,9 +665,21 @@
         }
     }
 
+    function cambiarMesVista(dir) {
+        mesIndexVisual += dir;
+        if (mesIndexVisual > 11) {
+            mesIndexVisual = 0;
+            anioVisual++;
+        } else if (mesIndexVisual < 0) {
+            mesIndexVisual = 11;
+            anioVisual--;
+        }
+        renderizarCalendario();
+    }
+
     function renderizarCalendario() {
         sincronizarFondoArrastre();
-        document.getElementById('calMesAnioTitulo').innerText = `${nombresMeses[mesIndex]} ${anioActual}`;
+        document.getElementById('calMesAnioTitulo').innerText = `${nombresMeses[mesIndexVisual]} ${anioVisual}`;
         let grid = document.getElementById('calendarGrid');
         grid.innerHTML = "";
 
@@ -660,14 +691,14 @@
             grid.appendChild(divName);
         });
 
-        let primerDiaMes = new Date(anioActual, mesIndex, 1);
-        let ultimoDiaMes = new Date(anioActual, mesIndex + 1, 0);
+        let primerDiaMes = new Date(anioVisual, mesIndexVisual, 1);
+        let ultimoDiaMes = new Date(anioVisual, mesIndexVisual + 1, 0);
         let totalDias = ultimoDiaMes.getDate();
         
         let inicioCol = primerDiaMes.getDay() - 1;
         if (inicioCol === -1) inicioCol = 6;
 
-        let ultimoDiaMesAnterior = new Date(anioActual, mesIndex, 0).getDate();
+        let ultimoDiaMesAnterior = new Date(anioVisual, mesIndexVisual, 0).getDate();
         for (let i = inicioCol - 1; i >= 0; i--) {
             let cell = document.createElement('div');
             cell.className = 'calendar-cell other-month';
@@ -735,7 +766,7 @@
             return;
         }
 
-        lblTitulo.innerHTML = `<span>Día ${diaSeleccionadoCalendario} de ${nombresMeses[mesIndex]}</span>`;
+        lblTitulo.innerHTML = `<span>Día ${diaSeleccionadoCalendario} de ${nombresMeses[mesIndexVisual]}</span>`;
         let gastosDelDia = db.plantillaGastos.filter(g => (g.diaNum || 0) === diaSeleccionadoCalendario);
 
         if (gastosDelDia.length === 0) {
@@ -1070,7 +1101,7 @@
         if(remanenteSobrante < 0) remanenteSobrante = 0;
 
         db.cierresMensualesDetallados.push({
-            mesNombre: nombresMeses[mesIndex] + " " + anioActual,
+            mesNombre: nombresMeses[mesIndexTrabajo] + " " + anioTrabajo,
             fondoInicial: db.fondoInicialMes || 0,
             totalGanado: totalGanadoSemanas,
             totalGastado: totalGastosMesGral,
@@ -1089,16 +1120,21 @@
         actualizarHistorialDetallado();
         document.getElementById('resultadoCard').style.display = "none";
 
-        alert(`¡Mes cerrado con éxito!\nSe arrastraron $${remanenteSobrante.toFixed(2)} al siguiente mes.`);
+        alert(`¡Mes de ${nombresMeses[mesIndexTrabajo]} cerrado con éxito!\nSe arrastraron $${remanenteSobrante.toFixed(2)} al siguiente mes.`);
         
-        mesIndex++;
-        if(mesIndex > 11) {
-            mesIndex = 0;
-            anioActual++;
+        // Pasamos al siguiente mes de trabajo (Octubre)
+        mesIndexTrabajo++;
+        if(mesIndexTrabajo > 11) {
+            mesIndexTrabajo = 0;
+            anioTrabajo++;
         }
-        listaSemanasMes = obtenerSemanasLaborables(anioActual, mesIndex);
+        
+        // Hacemos que la vista visual del calendario también se ponga automáticamente en Octubre al cerrar
+        mesIndexVisual = mesIndexTrabajo;
+        anioVisual = anioTrabajo;
 
-        document.getElementById('lblMesActual').innerText = `Mes: ${nombresMeses[mesIndex]} ${anioActual}`;
+        listaSemanasMes = obtenerSemanasLaborables(anioTrabajo, mesIndexTrabajo);
+
         inicializarSelectSemanas();
         diaSeleccionadoCalendario = null;
         renderizarCalendario();
@@ -1206,11 +1242,8 @@
     function eliminarMesHistorial(index) {
         if(confirm("¿Estás seguro de eliminar este registro del historial? Se borrará toda su información y se recalcularán los arrastres.")) {
             db.cierresMensualesDetallados.splice(index, 1);
-            
-            // Sincronizar el fondo de arrastre automáticamente al eliminar
             sincronizarFondoArrastre();
             guardarDB();
-            
             actualizarHistorialDetallado();
             renderizarCalendario();
             recalcularDeudaTotal();
@@ -1252,7 +1285,7 @@
                     </div>
                 </div>
                 <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 6px;">
-                    Fondo: $${(c.fondoInicial || 0).toFixed(2)} | Ganado Neto: $${(c.totalGanado || 0).toFixed(2)} | Sobrante: <strong style="color: var(--success);">$${(c.remanenteSobrante || 0).toFixed(2)}</strong>
+                    Fondo: $${(c.fondoInicial || 0).toFixed(2)} | Ganado Neto: $${(c.totalGanado || 0).toFixed(2)} | Sobrante: <strong style="color: var(--success);">$${(c.remanenteSurfante || c.remanenteSobrante || 0).toFixed(2)}</strong>
                 </div>
                 <table>
                     <thead>
@@ -1277,7 +1310,8 @@
             }
         });
         sincronizarFondoArrastre();
-        document.getElementById('lblMesActual').innerText = `Mes: ${nombresMeses[mesIndex]} ${anioActual}`;
+        
+        // Inicializamos con septiembre para tus semanas pendientes, pero el calendario visual ya se puede mover
         inicializarSelectSemanas();
         renderizarCalendario();
         recalcularDeudaTotal();
