@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Finanzas Diego PRO - Control Sincronizado</title>
+    <title>Finanzas Diego PRO - Control Sincronizado Definitivo</title>
     <style>
         :root {
             --bg-dark: #0b0f19;
@@ -151,7 +151,6 @@
         .btn:hover { opacity: 0.9; }
         .btn-success { background-color: var(--success); }
 
-        /* Controles de Navegación de Meses */
         .month-navigator {
             display: flex;
             justify-content: space-between;
@@ -163,7 +162,6 @@
             border: 1px solid var(--border);
         }
 
-        /* Estilos del Calendario Interactivo */
         .calendar-header {
             display: flex;
             justify-content: space-between;
@@ -233,7 +231,6 @@
             background-color: var(--success);
         }
 
-        /* Panel de Detalle del Día Seleccionado */
         .day-detail-panel {
             background: #0b0f19;
             border: 1px solid var(--border);
@@ -397,7 +394,6 @@
     <div class="card">
         <h2>Calendario de Pagos</h2>
         
-        <!-- Navegador manual para que puedas ver Septiembre u Octubre cuando lo necesites -->
         <div class="month-navigator">
             <button class="btn-icon" onclick="cambiarMesVista(-1)" style="font-weight:bold;">◀ Mes Ant.</button>
             <span id="calMesAnioTitulo" style="font-size: 0.85rem; font-weight: 600; color: var(--primary);">Octubre 2026</span>
@@ -406,7 +402,6 @@
 
         <div class="calendar-grid" id="calendarGrid"></div>
 
-        <!-- Panel del día seleccionado -->
         <div class="day-detail-panel" id="dayDetailPanel">
             <div class="day-detail-title">
                 <span id="lblDiaSeleccionado">Selecciona un día del calendario</span>
@@ -416,7 +411,6 @@
             </div>
         </div>
 
-        <!-- Sección de Gastos sin Fecha / Variables -->
         <div style="margin-top: 14px;">
             <div style="font-size: 0.8rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; margin-bottom: 8px;">
                 Otros Gastos y Variables (Sin Fecha Fija)
@@ -424,7 +418,6 @@
             <div id="listaGastosVariables"></div>
         </div>
 
-        <!-- Resumen Financiero -->
         <div style="margin-top: 14px; background: #0b0f19; padding: 10px; border-radius: 8px; border: 1px solid var(--border);">
             <div class="metric-row" style="margin-top: 0; margin-bottom: 4px;">
                 <span class="metric-label">Fondo Inicial (Arrastre Automático):</span>
@@ -516,7 +509,7 @@
 </div>
 
 <script>
-    const STORAGE_KEY = 'finanzas_diego_pro_master';
+    const STORAGE_KEY = 'finanzas_diego_pro_master_v2';
     
     let db = {
         deudaInicialBase: 10000,
@@ -547,13 +540,12 @@
 
     const nombresMeses = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
     
-    let fechaActualSistema = new Date();
-    // Controlamos el mes activo de trabajo de semanas (ej. septiembre si estamos cerrando septiembre)
-    let mesIndexTrabajo = 8; // Septiembre por defecto para tus semanas actuales
+    // Mes de trabajo actual por defecto: Septiembre (8) de 2026
+    let mesIndexTrabajo = 8; 
     let anioTrabajo = 2026;
 
-    // Controlamos el mes visual del calendario por separado para que puedas ver Septiembre u Octubre libremente
-    let mesIndexVisual = 9; // Octubre por defecto para ver tus pagos del mes que entra
+    // Vista visual del calendario (arranca en Octubre para ver el mes entrante)
+    let mesIndexVisual = 9; 
     let anioVisual = 2026;
 
     let diaSeleccionadoCalendario = null;
@@ -706,6 +698,10 @@
             grid.appendChild(cell);
         }
 
+        // Verificamos si estamos viendo un mes que ya fue cerrado en el historial para cargar sus checks históricos
+        let mesCerradoEnHistorial = db.cierresMensualesDetallados.find(c => c.mesIndex === mesIndexVisual && c.anio === anioVisual);
+        let checksDelMesVisual = mesCerradoEnHistorial ? (mesCerradoEnHistorial.gastosPagados || {}) : db.gastosPagados;
+
         for (let dia = 1; dia <= totalDias; dia++) {
             let cell = document.createElement('div');
             cell.className = 'calendar-cell';
@@ -715,7 +711,7 @@
             
             if (tieneGastos) {
                 cell.classList.add('has-event');
-                let todosPagados = gastosDelDia.every(g => !!db.gastosPagados[g.id]);
+                let todosPagados = gastosDelDia.every(g => !!checksDelMesVisual[g.id]);
                 if (todosPagados) {
                     cell.classList.add('all-paid');
                 }
@@ -727,7 +723,7 @@
 
             let dotsHtml = '<div class="cal-indicators">';
             gastosDelDia.forEach(g => {
-                let pagado = !!db.gastosPagados[g.id];
+                let pagado = !!checksDelMesVisual[g.id];
                 dotsHtml += `<div class="cal-dot ${pagado ? 'paid' : ''}" title="${g.nombre}"></div>`;
             });
             dotsHtml += '</div>';
@@ -760,13 +756,17 @@
         let contenedor = document.getElementById('listaGastosDia');
         let lblTitulo = document.getElementById('lblDiaSeleccionado');
 
+        let mesCerradoEnHistorial = db.cierresMensualesDetallados.find(c => c.mesIndex === mesIndexVisual && c.anio === anioVisual);
+        let checksDelMesVisual = mesCerradoEnHistorial ? (mesCerradoEnHistorial.gastosPagados || {}) : db.gastosPagados;
+        let esMesHistorial = !!mesCerradoEnHistorial;
+
         if (!diaSeleccionadoCalendario) {
             lblTitulo.innerText = "Selecciona un día del calendario";
             contenedor.innerHTML = `<p style="color: var(--text-muted); font-size: 0.8rem; margin: 0; text-align: center;">Toca cualquier número de arriba para ver sus pagos.</p>`;
             return;
         }
 
-        lblTitulo.innerHTML = `<span>Día ${diaSeleccionadoCalendario} de ${nombresMeses[mesIndexVisual]}</span>`;
+        lblTitulo.innerHTML = `<span>Día ${diaSeleccionadoCalendario} de ${nombresMeses[mesIndexVisual]} ${esMesHistorial ? '(Historial Cerrado)' : ''}</span>`;
         let gastosDelDia = db.plantillaGastos.filter(g => (g.diaNum || 0) === diaSeleccionadoCalendario);
 
         if (gastosDelDia.length === 0) {
@@ -777,19 +777,24 @@
         contenedor.innerHTML = "";
         gastosDelDia.forEach(g => {
             let monto = db.gastosValores[g.id] !== undefined ? db.gastosValores[g.id] : 0;
-            let pagado = !!db.gastosPagados[g.id];
+            let pagado = !!checksDelMesVisual[g.id];
 
             let div = document.createElement('div');
             div.className = `gasto-item-cal ${pagado ? 'pagado' : ''}`;
-            div.innerHTML = `
-                <div style="display: flex; align-items: center; gap: 8px; flex: 1; overflow: hidden;">
-                    <input type="checkbox" id="chk_${g.id}" ${pagado ? 'checked' : ''} onchange="togglePagado('${g.id}')" style="width: 16px; height: 16px; accent-color: var(--success); cursor: pointer;">
-                    <span style="font-size: 0.85rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${g.nombre} ($${monto.toFixed(2)})</span>
-                </div>
+            
+            let accionesHtml = esMesHistorial ? '' : `
                 <div style="display: flex; gap: 4px;">
                     <button class="btn-icon" onclick="abrirModalEditarGasto('${g.id}')" title="Editar">✏️</button>
                     <button class="btn-icon delete" onclick="eliminarGasto('${g.id}')" title="Eliminar">✕</button>
                 </div>
+            `;
+
+            div.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 8px; flex: 1; overflow: hidden;">
+                    <input type="checkbox" id="chk_${g.id}" ${pagado ? 'checked' : ''} ${esMesHistorial ? 'disabled' : `onchange="togglePagado('${g.id}')"`} style="width: 16px; height: 16px; accent-color: var(--success); cursor: pointer;">
+                    <span style="font-size: 0.85rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${g.nombre} ($${monto.toFixed(2)})</span>
+                </div>
+                ${accionesHtml}
             `;
             contenedor.appendChild(div);
         });
@@ -799,6 +804,10 @@
         let contenedor = document.getElementById('listaGastosVariables');
         let gastosVar = db.plantillaGastos.filter(g => (g.diaNum || 0) === 0);
 
+        let mesCerradoEnHistorial = db.cierresMensualesDetallados.find(c => c.mesIndex === mesIndexVisual && c.anio === anioVisual);
+        let checksDelMesVisual = mesCerradoEnHistorial ? (mesCerradoEnHistorial.gastosPagados || {}) : db.gastosPagados;
+        let esMesHistorial = !!mesCerradoEnHistorial;
+
         if (gastosVar.length === 0) {
             contenedor.innerHTML = `<p style="color: var(--text-muted); font-size: 0.8rem; margin: 0;">No hay gastos variables sin fecha.</p>`;
             return;
@@ -807,19 +816,24 @@
         contenedor.innerHTML = "";
         gastosVar.forEach(g => {
             let monto = db.gastosValores[g.id] !== undefined ? db.gastosValores[g.id] : 0;
-            let pagado = !!db.gastosPagados[g.id];
+            let pagado = !!checksDelMesVisual[g.id];
 
             let div = document.createElement('div');
             div.className = `gasto-item-cal ${pagado ? 'pagado' : ''}`;
-            div.innerHTML = `
-                <div style="display: flex; align-items: center; gap: 8px; flex: 1; overflow: hidden;">
-                    <input type="checkbox" id="chk_${g.id}" ${pagado ? 'checked' : ''} onchange="togglePagado('${g.id}')" style="width: 16px; height: 16px; accent-color: var(--success); cursor: pointer;">
-                    <span style="font-size: 0.85rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${g.nombre} ($${monto.toFixed(2)})</span>
-                </div>
+            
+            let accionesHtml = esMesHistorial ? '' : `
                 <div style="display: flex; gap: 4px;">
                     <button class="btn-icon" onclick="abrirModalEditarGasto('${g.id}')" title="Editar">✏️</button>
                     <button class="btn-icon delete" onclick="eliminarGasto('${g.id}')" title="Eliminar">✕</button>
                 </div>
+            `;
+
+            div.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 8px; flex: 1; overflow: hidden;">
+                    <input type="checkbox" id="chk_${g.id}" ${pagado ? 'checked' : ''} ${esMesHistorial ? 'disabled' : `onchange="togglePagado('${g.id}')"`} style="width: 16px; height: 16px; accent-color: var(--success); cursor: pointer;">
+                    <span style="font-size: 0.85rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${g.nombre} ($${monto.toFixed(2)})</span>
+                </div>
+                ${accionesHtml}
             `;
             contenedor.appendChild(div);
         });
@@ -838,9 +852,12 @@
         let totalGeneral = 0;
         let totalPagadoReal = 0;
 
+        let mesCerradoEnHistorial = db.cierresMensualesDetallados.find(c => c.mesIndex === mesIndexVisual && c.anio === anioVisual);
+        let checksDelMesVisual = mesCerradoEnHistorial ? (mesCerradoEnHistorial.gastosPagados || {}) : db.gastosPagados;
+
         db.plantillaGastos.forEach(g => {
             let val = db.gastosValores[g.id] !== undefined ? db.gastosValores[g.id] : 0;
-            let pagado = !!db.gastosPagados[g.id];
+            let pagado = !!checksDelMesVisual[g.id];
 
             totalGeneral += val;
             if (pagado) {
@@ -1092,6 +1109,11 @@
             return;
         }
 
+        // Guardamos exactamente el mes que estábamos cerrando (ej. Septiembre)
+        let nombreMesCerrado = nombresMeses[mesIndexTrabajo] + " " + anioTrabajo;
+        let indexMesCerrado = mesIndexTrabajo;
+        let anioCerrado = anioTrabajo;
+
         let totalGanadoSemanas = db.semanasMes.reduce((acc, curr) => acc + (curr.ingresoNeto !== undefined ? curr.ingresoNeto : (curr.ingreso - 250)), 0);
         let totalDeudaPagada = db.semanasMes.reduce((acc, curr) => acc + curr.abono, 0);
         let totalIngresosMes = (db.fondoInicialMes || 0) + totalGanadoSemanas;
@@ -1101,17 +1123,20 @@
         if(remanenteSobrante < 0) remanenteSobrante = 0;
 
         db.cierresMensualesDetallados.push({
-            mesNombre: nombresMeses[mesIndexTrabajo] + " " + anioTrabajo,
+            mesIndex: indexMesCerrado,
+            anio: anioCerrado,
+            mesNombre: nombreMesCerrado,
             fondoInicial: db.fondoInicialMes || 0,
             totalGanado: totalGanadoSemanas,
             totalGastado: totalGastosMesGral,
             totalDeudaPagada: totalDeudaPagada,
             remanenteSobrante: remanenteSobrante,
-            semanasDetalle: [...db.semanasMes]
+            semanasDetalle: [...db.semanasMes],
+            gastosPagados: { ...db.gastosPagados } // ¡Guardamos los checks específicos de este mes!
         });
 
         db.semanasMes = [];
-        db.gastosPagados = {};
+        db.gastosPagados = {}; // Limpiamos los checks actuales para el nuevo mes que arranca
         
         sincronizarFondoArrastre();
         guardarDB();
@@ -1120,7 +1145,7 @@
         actualizarHistorialDetallado();
         document.getElementById('resultadoCard').style.display = "none";
 
-        alert(`¡Mes de ${nombresMeses[mesIndexTrabajo]} cerrado con éxito!\nSe arrastraron $${remanenteSobrante.toFixed(2)} al siguiente mes.`);
+        alert(`¡Mes de ${nombreMesCerrado} cerrado con éxito!\nSe guardaron tus pagos tachados y se arrastraron $${remanenteSobrante.toFixed(2)} al siguiente mes.`);
         
         // Pasamos al siguiente mes de trabajo (Octubre)
         mesIndexTrabajo++;
@@ -1129,7 +1154,6 @@
             anioTrabajo++;
         }
         
-        // Hacemos que la vista visual del calendario también se ponga automáticamente en Octubre al cerrar
         mesIndexVisual = mesIndexTrabajo;
         anioVisual = anioTrabajo;
 
@@ -1225,7 +1249,7 @@
         let totalGanadoSemanas = c.semanasDetalle.reduce((acc, curr) => acc + (curr.ingresoNeto !== undefined ? curr.ingresoNeto : (curr.ingreso - 250)), 0);
         let totalIngresosMes = c.fondoInicial + totalGanadoSemanas;
         
-        let remanenteSobrante = totalIngresosMes - (c.totalGastos || 0);
+        let remanenteSobrante = totalIngresosMes - (c.totalGastado || 0);
         if(remanenteSobrante < 0) remanenteSobrante = 0;
 
         c.totalGanado = totalGanadoSemanas;
@@ -1285,7 +1309,7 @@
                     </div>
                 </div>
                 <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 6px;">
-                    Fondo: $${(c.fondoInicial || 0).toFixed(2)} | Ganado Neto: $${(c.totalGanado || 0).toFixed(2)} | Sobrante: <strong style="color: var(--success);">$${(c.remanenteSurfante || c.remanenteSobrante || 0).toFixed(2)}</strong>
+                    Fondo: $${(c.fondoInicial || 0).toFixed(2)} | Ganado Neto: $${(c.totalGanado || 0).toFixed(2)} | Sobrante: <strong style="color: var(--success);">$${(c.remanenteSobrante || 0).toFixed(2)}</strong>
                 </div>
                 <table>
                     <thead>
@@ -1311,7 +1335,6 @@
         });
         sincronizarFondoArrastre();
         
-        // Inicializamos con septiembre para tus semanas pendientes, pero el calendario visual ya se puede mover
         inicializarSelectSemanas();
         renderizarCalendario();
         recalcularDeudaTotal();
