@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Finanzas Diego PRO - Abonos Parciales y Metas</title>
+    <title>Finanzas Diego PRO - Control Maestro Definitivo</title>
     <style>
         :root {
             --bg-dark: #0b0f19;
@@ -327,16 +327,19 @@
     <header>
         <div class="badge-mes" id="lblMesActual">Cargando...</div>
         <h1>Finanzas PRO</h1>
-        <p>Control de Metas y Abonos Parciales</p>
+        <p>Control de Metas y Abonos</p>
     </header>
 
     <!-- Estado de Metas Prioritarias -->
     <div class="card" style="border-left: 3px solid var(--danger);">
         <h2>Meta Total Restante</h2>
-        <div class="metric-value danger" id="lblDeuda">$3,128.00</div>
+        <div class="metric-value danger" id="lblDeuda">$0.00</div>
         
         <div style="margin-top: 10px; border-top: 1px dashed var(--border); padding-top: 8px;">
-            <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; margin-bottom: 6px; font-weight: 600;">Progreso de Metas (Toca para abonar o pagar):</div>
+            <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; margin-bottom: 6px; font-weight: 600; display: flex; justify-content: space-between; align-items: center;">
+                <span>Progreso de Metas (Toca para abonar):</span>
+                <button class="btn-success" style="font-size: 0.75rem; padding: 3px 8px; width: auto;" onclick="abrirModalNuevaMeta()">+ Agregar Meta</button>
+            </div>
             <div id="listaMetasPrioritarias"></div>
         </div>
     </div>
@@ -458,7 +461,7 @@
     </div>
 </div>
 
-<!-- Modal para Abonar Parcialmente a una Meta -->
+<!-- Modal para Abonar Parcialmente y Gestionar Abonos a una Meta -->
 <div class="modal-overlay" id="modalAbonoMeta">
     <div class="modal-content">
         <h2 id="modalMetaTitulo">Abonar a Meta</h2>
@@ -472,9 +475,35 @@
             <label>Monto a abonar hoy ($)</label>
             <input type="number" id="modalMontoAbonoInput" placeholder="Ej. 200" step="0.01">
         </div>
+        <button class="btn btn-success" style="padding: 10px; margin-bottom: 10px;" onclick="guardarAbonoMeta()">Registrar Nuevo Abono</button>
+        
+        <!-- Historial de Abonos con opción de eliminar -->
+        <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; margin-top: 10px; margin-bottom: 4px; font-weight: 600;">Historial de Abonos (Toca ✕ para borrar uno):</div>
+        <div id="listaHistorialAbonos" style="max-height: 120px; overflow-y: auto; margin-bottom: 12px;"></div>
+
+        <div style="display: flex; gap: 6px; border-top: 1px solid var(--border); padding-top: 10px;">
+            <button class="btn" style="background-color: var(--danger); padding: 8px; font-size: 0.8rem;" onclick="eliminarMetaCompleta()">Eliminar Meta</button>
+            <button class="btn" style="background-color: #1e293b; padding: 8px; font-size: 0.8rem;" onclick="cerrarModalAbonoMeta()">Cerrar</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Agregar / Editar Meta -->
+<div class="modal-overlay" id="modalNuevaMeta">
+    <div class="modal-content">
+        <h2 id="modalMetaEditTitulo">Agregar Meta Prioritaria</h2>
+        <input type="hidden" id="modalMetaEditIndex" value="-1">
+        <div class="form-group">
+            <label>Nombre de la Meta</label>
+            <input type="text" id="inputMetaNombre" placeholder="Ej. Diego BofA">
+        </div>
+        <div class="form-group">
+            <label>Monto Objetivo ($)</label>
+            <input type="number" id="inputMetaObjetivo" placeholder="Ej. 500" step="0.01">
+        </div>
         <div style="display: flex; gap: 6px; margin-top: 14px;">
-            <button class="btn btn-success" style="padding: 10px;" onclick="guardarAbonoMeta()">Registrar Abono</button>
-            <button class="btn" style="background-color: #1e293b; padding: 10px;" onclick="cerrarModalAbonoMeta()">Cancelar</button>
+            <button class="btn btn-success" style="padding: 10px;" onclick="guardarMetaModal()">Guardar</button>
+            <button class="btn" style="background-color: #1e293b; padding: 10px;" onclick="cerrarModalNuevaMeta()">Cancelar</button>
         </div>
     </div>
 </div>
@@ -531,15 +560,15 @@
 </div>
 
 <script>
-    const STORAGE_KEY = 'finanzas_diego_pro_master_v6';
+    const STORAGE_KEY = 'finanzas_diego_pro_master_v7';
     
     let db = {
         metasPrioritarias: [
-            { id: 'm1', nombre: 'Diego BofA', objetivo: 628, pagado: 0 },
-            { id: 'm2', nombre: 'Valen Préstamo', objetivo: 250, pagado: 0 },
-            { id: 'm3', nombre: 'Diego BofA', objetivo: 500, pagado: 0 },
-            { id: 'm4', nombre: 'Valen Hood', objetivo: 750, pagado: 0 },
-            { id: 'm5', nombre: 'Diego Hood', objetivo: 1000, pagado: 0 }
+            { id: 'm1', nombre: 'Diego BofA', objetivo: 628, abonos: [] },
+            { id: 'm2', nombre: 'Valen Préstamo', objetivo: 250, abonos: [] },
+            { id: 'm3', nombre: 'Diego BofA', objetivo: 500, abonos: [] },
+            { id: 'm4', nombre: 'Valen Hood', objetivo: 750, abonos: [] },
+            { id: 'm5', nombre: 'Diego Hood', objetivo: 1000, abonos: [] }
         ],
         semanasMes: [],
         cierresMensualesDetallados: [],
@@ -579,7 +608,14 @@
         if (guardado) {
             try {
                 let parsed = JSON.parse(guardado);
-                if (parsed.metasPrioritarias) db.metasPrioritarias = parsed.metasPrioritarias;
+                if (parsed.metasPrioritarias) {
+                    db.metasPrioritarias = parsed.metasPrioritarias.map(m => {
+                        if (!m.abonos) {
+                            m.abonos = m.pagado > 0 ? [{ id: Date.now(), monto: m.pagado, fecha: 'Inicial' }] : [];
+                        }
+                        return m;
+                    });
+                }
                 db.semanasMes = parsed.semanasMes || [];
                 db.cierresMensualesDetallados = parsed.cierresMensualesDetallados || [];
                 db.fondoInicialMes = parsed.fondoInicialMes !== undefined ? parsed.fondoInicialMes : 0;
@@ -917,20 +953,103 @@
         }
     }
 
+    // GESTIÓN DE METAS Y ABONOS PARCIALES
+    function abrirModalNuevaMeta() {
+        document.getElementById('modalMetaEditTitulo').innerText = "Agregar Meta Prioritaria";
+        document.getElementById('modalMetaEditIndex').value = "-1";
+        document.getElementById('inputMetaNombre').value = "";
+        document.getElementById('inputMetaObjetivo').value = "";
+        document.getElementById('modalNuevaMeta').style.display = "flex";
+    }
+
+    function abrirModalEditarMeta(index) {
+        let meta = db.metasPrioritarias[index];
+        document.getElementById('modalMetaEditTitulo').innerText = "Editar Meta";
+        document.getElementById('modalMetaEditIndex').value = index;
+        document.getElementById('inputMetaNombre').value = meta.nombre;
+        document.getElementById('inputMetaObjetivo').value = meta.objetivo;
+        document.getElementById('modalNuevaMeta').style.display = "flex";
+    }
+
+    function cerrarModalNuevaMeta() {
+        document.getElementById('modalNuevaMeta').style.display = "none";
+    }
+
+    function guardarMetaModal() {
+        let idx = parseInt(document.getElementById('modalMetaEditIndex').value);
+        let nombre = document.getElementById('inputMetaNombre').value.trim();
+        let objetivo = parseFloat(document.getElementById('inputMetaObjetivo').value) || 0;
+
+        if(!nombre || objetivo <= 0) {
+            alert("Ingresa un nombre y un monto válido.");
+            return;
+        }
+
+        if(idx >= 0) {
+            db.metasPrioritarias[idx].nombre = nombre;
+            db.metasPrioritarias[idx].objetivo = objetivo;
+        } else {
+            db.metasPrioritarias.push({
+                id: 'm_' + Date.now(),
+                nombre: nombre,
+                objetivo: objetivo,
+                abonos: []
+            });
+        }
+
+        guardarDB();
+        cerrarModalNuevaMeta();
+        renderizarMetas();
+    }
+
+    function eliminarMetaCompleta() {
+        let idx = parseInt(document.getElementById('modalMetaIndex').value);
+        if(confirm("¿Estás seguro de eliminar esta meta por completo?")) {
+            db.metasPrioritarias.splice(idx, 1);
+            guardarDB();
+            cerrarModalAbonoMeta();
+            renderizarMetas();
+        }
+    }
+
     function abrirModalAbonoMeta(index) {
         let meta = db.metasPrioritarias[index];
-        let pagado = meta.pagado || 0;
-        let resta = meta.objetivo - pagado;
+        if(!meta.abonos) meta.abonos = [];
+        let totalPagado = meta.abonos.reduce((acc, curr) => acc + curr.monto, 0);
+        let resta = meta.objetivo - totalPagado;
         if(resta < 0) resta = 0;
 
         document.getElementById('modalMetaIndex').value = index;
-        document.getElementById('modalMetaTitulo').innerText = "Abonar: " + meta.nombre;
+        document.getElementById('modalMetaTitulo').innerText = "Abonos: " + meta.nombre;
         document.getElementById('modalMetaObjetivo').innerText = "$" + meta.objetivo.toFixed(2);
-        document.getElementById('modalMetaPagado').innerText = "$" + pagado.toFixed(2);
+        document.getElementById('modalMetaPagado').innerText = "$" + totalPagado.toFixed(2);
         document.getElementById('modalMetaResta').innerText = "$" + resta.toFixed(2);
         document.getElementById('modalMontoAbonoInput').value = "";
         
+        renderizarHistorialAbonos(index);
         document.getElementById('modalAbonoMeta').style.display = "flex";
+    }
+
+    function renderizarHistorialAbonos(index) {
+        let meta = db.metasPrioritarias[index];
+        let contenedor = document.getElementById('listaHistorialAbonos');
+        contenedor.innerHTML = "";
+
+        if(!meta.abonos || meta.abonos.length === 0) {
+            contenedor.innerHTML = `<p style="color: var(--text-muted); font-size: 0.75rem; margin: 0;">Sin abonos registrados.</p>`;
+            return;
+        }
+
+        meta.abonos.forEach((abono, aIdx) => {
+            let div = document.createElement('div');
+            div.className = "gasto-item-cal";
+            div.style.padding = "4px 8px";
+            div.innerHTML = `
+                <span style="font-size: 0.75rem;">$${abono.monto.toFixed(2)} (${abono.fecha || 'Abono'})</span>
+                <button class="btn-icon delete" onclick="eliminarAbonoMeta(${index}, ${aIdx})" title="Eliminar Abono">✕</button>
+            `;
+            contenedor.appendChild(div);
+        });
     }
 
     function cerrarModalAbonoMeta() {
@@ -946,12 +1065,28 @@
         }
 
         let meta = db.metasPrioritarias[idx];
-        meta.pagado = (meta.pagado || 0) + monto;
-        if(meta.pagado > meta.objetivo) meta.pagado = meta.objetivo;
+        if(!meta.abonos) meta.abonos = [];
+        
+        let fechaHoy = new Date().toLocaleDateString('es-ES', { day: '2-digit', month: 'short' });
+        meta.abonos.push({
+            id: Date.now(),
+            monto: monto,
+            fecha: fechaHoy
+        });
 
         guardarDB();
-        cerrarModalAbonoMeta();
+        abrirModalAbonoMeta(idx); // Refrescar modal
         renderizarMetas();
+    }
+
+    function eliminarAbonoMeta(metaIdx, abonoIdx) {
+        if(confirm("¿Estás seguro de eliminar este abono?")) {
+            let meta = db.metasPrioritarias[metaIdx];
+            meta.abonos.splice(abonoIdx, 1);
+            guardarDB();
+            abrirModalAbonoMeta(metaIdx);
+            renderizarMetas();
+        }
     }
 
     function renderizarMetas() {
@@ -959,27 +1094,33 @@
         contenedor.innerHTML = "";
         let metaTotalRestante = 0;
 
+        if(db.metasPrioritarias.length === 0) {
+            contenedor.innerHTML = `<p style="text-align: center; color: var(--text-muted); font-size: 0.8rem; padding: 6px;">Sin metas registradas</p>`;
+            document.getElementById('lblDeuda').innerText = "$0.00";
+            return;
+        }
+
         db.metasPrioritarias.forEach((meta, idx) => {
-            let pagado = meta.pagado || 0;
+            if(!meta.abonos) meta.abonos = [];
+            let pagado = meta.abonos.reduce((acc, curr) => acc + curr.monto, 0);
             let pendienteMeta = meta.objetivo - pagado;
             if(pendienteMeta < 0) pendienteMeta = 0;
             metaTotalRestante += pendienteMeta;
             let estaCompleto = pendienteMeta === 0;
 
             let div = document.createElement('div');
-            div.style.cssText = "display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; margin-bottom: 6px; background: #0b0f19; padding: 8px 10px; border-radius: 6px; border: 1px solid var(--border); cursor: pointer;";
-            div.onclick = () => abrirModalAbonoMeta(idx);
+            div.style.cssText = "display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; margin-bottom: 6px; background: #0b0f19; padding: 8px 10px; border-radius: 6px; border: 1px solid var(--border);";
             
             div.innerHTML = `
-                <div style="display: flex; flex-direction: column; gap: 2px;">
+                <div style="display: flex; flex-direction: column; gap: 2px; flex: 1; cursor: pointer;" onclick="abrirModalAbonoMeta(${idx})">
                     <span style="font-weight: 600; ${estaCompleto ? 'text-decoration: line-through; color: var(--success);' : ''}">${idx + 1}. ${meta.nombre} ($${meta.objetivo})</span>
                     <span style="font-size: 0.72rem; color: var(--text-muted);">Pagado: $${pagado.toFixed(2)}</span>
                 </div>
-                <div style="text-align: right;">
-                    <span style="font-weight: 600; color: ${estaCompleto ? 'var(--success)' : 'var(--warning)'}; display: block;">
+                <div style="display: flex; align-items: center; gap: 6px;">
+                    <span style="font-weight: 600; color: ${estaCompleto ? 'var(--success)' : 'var(--warning)'}; font-size: 0.78rem;" onclick="abrirModalAbonoMeta(${idx})">
                         ${estaCompleto ? '✓ Finiquitada' : 'Restan $' + pendienteMeta.toFixed(2)}
                     </span>
-                    <span style="font-size: 0.7rem; color: var(--primary);">+ Abonar</span>
+                    <button class="btn-icon" onclick="abrirModalEditarMeta(${idx})" title="Editar Meta">✏️</button>
                 </div>
             `;
             contenedor.appendChild(div);
@@ -999,7 +1140,9 @@
         let sugerenciaTexto = [];
 
         for (let meta of db.metasPrioritarias) {
-            let pendiente = meta.objetivo - (meta.pagado || 0);
+            if(!meta.abonos) meta.abonos = [];
+            let pagado = meta.abonos.reduce((acc, curr) => acc + curr.monto, 0);
+            let pendiente = meta.objetivo - pagado;
             if (pendiente > 0) {
                 let aPagar = Math.min(restantePorAsignar, pendiente);
                 sugerenciaTexto.push(`$${aPagar.toFixed(2)} para <strong>${meta.nombre}</strong>`);
