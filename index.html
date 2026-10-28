@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Finanzas Diego PRO - Metas Prioritarias</title>
+    <title>Finanzas Diego PRO - Control de Metas Prioritarias</title>
     <style>
         :root {
             --bg-dark: #0b0f19;
@@ -343,9 +343,9 @@
         <h2>Meta Total Restante</h2>
         <div class="metric-value danger" id="lblDeuda">$3,128.00</div>
         
-        <!-- Lista Desglosada de Metas -->
+        <!-- Lista Desglosada de Metas con opción de tildar -->
         <div style="margin-top: 10px; border-top: 1px dashed var(--border); padding-top: 8px;">
-            <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; margin-bottom: 6px; font-weight: 600;">Progreso de Metas:</div>
+            <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; margin-bottom: 6px; font-weight: 600;">Progreso de Metas (Toca para tachar):</div>
             <div id="listaMetasPrioritarias"></div>
         </div>
     </div>
@@ -381,7 +381,6 @@
         <div class="metric-row"><span class="metric-label">Apartado Gastos Mes:</span><span class="metric-value warning" id="resGastos">$0.00</span></div>
         <div class="metric-row"><span class="metric-label">Abono Disponible Metas:</span><span class="metric-value success" id="resAbono">$0.00</span></div>
         
-        <!-- Sugerencia de Distribución -->
         <div id="sugerenciaAbonoBox" style="margin-top: 10px; background: #0b0f19; padding: 10px; border-radius: 8px; border: 1px solid var(--border); font-size: 0.8rem;">
             <strong style="color: var(--primary);">💡 Sugerencia de pago:</strong> <span id="txtSugerenciaAbono">Calculando...</span>
         </div>
@@ -520,10 +519,9 @@
 </div>
 
 <script>
-    const STORAGE_KEY = 'finanzas_diego_pro_master_v3';
+    const STORAGE_KEY = 'finanzas_diego_pro_master_v4';
     
     let db = {
-        // Nuevas metas prioritarias ordenadas por prioridad
         metasPrioritarias: [
             { id: 'm1', nombre: 'Diego BofA', objetivo: 628, pagado: 0 },
             { id: 'm2', nombre: 'Valen Préstamo', objetivo: 250, pagado: 0 },
@@ -558,7 +556,8 @@
 
     const nombresMeses = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
     
-    let mesIndexTrabajo = 8; 
+    // Configuramos automáticamente octubre (9) de 2026 como mes activo actual
+    let mesIndexTrabajo = 9; 
     let anioTrabajo = 2026;
     let mesIndexVisual = 9; 
     let anioVisual = 2026;
@@ -644,7 +643,7 @@
     let listaSemanasMes = obtenerSemanasLaborables(anioTrabajo, mesIndexTrabajo);
 
     function inicializarSelectSemanas() {
-        document.getElementById('lblMesActual').innerText = `Cerrando: ${nombresMeses[mesIndexTrabajo]} ${anioTrabajo}`;
+        document.getElementById('lblMesActual').innerText = `Mes Activo: ${nombresMeses[mesIndexTrabajo]} ${anioTrabajo}`;
         let select = document.getElementById('nombreSemana');
         select.innerHTML = "";
         listaSemanasMes.forEach(sem => {
@@ -907,22 +906,43 @@
         }
     }
 
+    function toggleMetaPagada(index) {
+        let meta = db.metasPrioritarias[index];
+        let pagadoActual = meta.pagado || 0;
+        
+        if (pagadoActual >= meta.objetivo) {
+            meta.pagado = 0; // Desmarcar
+        } else {
+            meta.pagado = meta.objetivo; // Marcar como pagado completo
+        }
+        
+        guardarDB();
+        renderizarMetas();
+    }
+
     function renderizarMetas() {
         let contenedor = document.getElementById('listaMetasPrioritarias');
         contenedor.innerHTML = "";
         let metaTotalRestante = 0;
 
         db.metasPrioritarias.forEach((meta, idx) => {
-            let pendienteMeta = meta.objetivo - (meta.pagado || 0);
+            let pagado = meta.pagado || 0;
+            let pendienteMeta = meta.objetivo - pagado;
             if(pendienteMeta < 0) pendienteMeta = 0;
             metaTotalRestante += pendienteMeta;
+            let estaCompleto = pendienteMeta === 0;
 
             let div = document.createElement('div');
-            div.style.cssText = "display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; margin-bottom: 4px;";
+            div.style.cssText = "display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; margin-bottom: 6px; background: #0b0f19; padding: 6px 8px; border-radius: 6px; border: 1px solid var(--border); cursor: pointer;";
+            div.onclick = () => toggleMetaPagada(idx);
+            
             div.innerHTML = `
-                <span>${idx + 1}. ${meta.nombre} ($${meta.objetivo})</span>
-                <span style="font-weight: 600; color: ${pendienteMeta === 0 ? 'var(--success)' : 'var(--warning)'};">
-                    ${pendienteMeta === 0 ? '✓ Pagado' : 'Restan $' + pendienteMeta.toFixed(2)}
+                <div style="display: flex; align-items: center; gap: 6px;">
+                    <input type="checkbox" ${estaCompleto ? 'checked' : ''} onclick="event.stopPropagation(); toggleMetaPagada(${idx});" style="width: 14px; height: 14px; accent-color: var(--success); cursor: pointer;">
+                    <span style="${estaCompleto ? 'text-decoration: line-through; color: var(--success);' : ''}">${idx + 1}. ${meta.nombre} ($${meta.objetivo})</span>
+                </div>
+                <span style="font-weight: 600; color: ${estaCompleto ? 'var(--success)' : 'var(--warning)'};">
+                    ${estaCompleto ? '✓ Pagado' : 'Restan $' + pendienteMeta.toFixed(2)}
                 </span>
             `;
             contenedor.appendChild(div);
@@ -941,12 +961,10 @@
         let restantePorAsignar = montoAbono;
         let sugerenciaTexto = [];
 
-        // Simulamos la distribución respetando la prioridad de la lista
         for (let meta of db.metasPrioritarias) {
             let pendiente = meta.objetivo - (meta.pagado || 0);
             if (pendiente > 0) {
                 let aPagar = Math.min(restantePorAsignar, pendiente);
-                sugerenciaTexto.translate ? null : null;
                 sugerenciaTexto.push(`$${aPagar.toFixed(2)} para <strong>${meta.nombre}</strong>`);
                 restantePorAsignar -= aPagar;
                 if (restantePorAsignar <= 0) break;
