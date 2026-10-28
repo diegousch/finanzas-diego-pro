@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Finanzas Diego PRO - Control Sincronizado Definitivo</title>
+    <title>Finanzas Diego PRO - Metas Prioritarias</title>
     <style>
         :root {
             --bg-dark: #0b0f19;
@@ -335,13 +335,19 @@
     <header>
         <div class="badge-mes" id="lblMesActual">Cargando...</div>
         <h1>Finanzas PRO</h1>
-        <p>Control Total Sincronizado</p>
+        <p>Control de Metas Prioritarias</p>
     </header>
 
-    <!-- Estado de Deuda -->
+    <!-- Estado de Metas Prioritarias -->
     <div class="card" style="border-left: 3px solid var(--danger);">
-        <h2>Deuda Objetivo Restante</h2>
-        <div class="metric-value danger" id="lblDeuda">$10,000.00</div>
+        <h2>Meta Total Restante</h2>
+        <div class="metric-value danger" id="lblDeuda">$3,128.00</div>
+        
+        <!-- Lista Desglosada de Metas -->
+        <div style="margin-top: 10px; border-top: 1px dashed var(--border); padding-top: 8px;">
+            <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; margin-bottom: 6px; font-weight: 600;">Progreso de Metas:</div>
+            <div id="listaMetasPrioritarias"></div>
+        </div>
     </div>
 
     <!-- Registrar Ingreso de Semana -->
@@ -362,18 +368,23 @@
         </div>
         <div class="checkbox-group">
             <input type="checkbox" id="sinAbonoDeuda">
-            <label for="sinAbonoDeuda">Sin abono a deuda esta semana ($0)</label>
+            <label for="sinAbonoDeuda">Sin abono a metas esta semana ($0)</label>
         </div>
         <button class="btn" id="btnProcesar" onclick="procesarSemana()">Registrar Semana</button>
     </div>
 
-    <!-- Resultados Semana Registrada -->
+    <!-- Resultados Semana Registrada y Sugerencia Inteligente -->
     <div class="card" id="resultadoCard" style="display:none; border-left: 3px solid var(--success);">
-        <h2>Último Registro</h2>
+        <h2>Último Registro & Sugerencia</h2>
         <div class="metric-row"><span class="metric-label">Semana:</span><span class="metric-value primary" id="resNombre" style="font-size: 0.95rem;">-</span></div>
         <div class="metric-row"><span class="metric-label">Ingreso Neto (Menos $250):</span><span class="metric-value primary" id="resIngreso">$0.00</span></div>
-        <div class="metric-row"><span class="metric-label">Apartado Gastos:</span><span class="metric-value warning" id="resGastos">$0.00</span></div>
-        <div class="metric-row"><span class="metric-label">Abono Deuda:</span><span class="metric-value success" id="resAbono">$0.00</span></div>
+        <div class="metric-row"><span class="metric-label">Apartado Gastos Mes:</span><span class="metric-value warning" id="resGastos">$0.00</span></div>
+        <div class="metric-row"><span class="metric-label">Abono Disponible Metas:</span><span class="metric-value success" id="resAbono">$0.00</span></div>
+        
+        <!-- Sugerencia de Distribución -->
+        <div id="sugerenciaAbonoBox" style="margin-top: 10px; background: #0b0f19; padding: 10px; border-radius: 8px; border: 1px solid var(--border); font-size: 0.8rem;">
+            <strong style="color: var(--primary);">💡 Sugerencia de pago:</strong> <span id="txtSugerenciaAbono">Calculando...</span>
+        </div>
     </div>
 
     <!-- Semanas Registradas en el Mes -->
@@ -392,7 +403,7 @@
 
     <!-- Calendario y Control de Pagos Interactivo -->
     <div class="card">
-        <h2>Calendario de Pagos</h2>
+        <h2>Calendario de Pagos del Mes</h2>
         
         <div class="month-navigator">
             <button class="btn-icon" onclick="cambiarMesVista(-1)" style="font-weight:bold;">◀ Mes Ant.</button>
@@ -412,7 +423,7 @@
         </div>
 
         <div style="margin-top: 14px;">
-            <div style="font-size: 0.8rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; margin-bottom: 8px;">
+            <div style="font-size: 0.80rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; margin-bottom: 8px;">
                 Otros Gastos y Variables (Sin Fecha Fija)
             </div>
             <div id="listaGastosVariables"></div>
@@ -509,10 +520,17 @@
 </div>
 
 <script>
-    const STORAGE_KEY = 'finanzas_diego_pro_master_v2';
+    const STORAGE_KEY = 'finanzas_diego_pro_master_v3';
     
     let db = {
-        deudaInicialBase: 10000,
+        // Nuevas metas prioritarias ordenadas por prioridad
+        metasPrioritarias: [
+            { id: 'm1', nombre: 'Diego BofA', objetivo: 628, pagado: 0 },
+            { id: 'm2', nombre: 'Valen Préstamo', objetivo: 250, pagado: 0 },
+            { id: 'm3', nombre: 'Diego BofA', objetivo: 500, pagado: 0 },
+            { id: 'm4', nombre: 'Valen Hood', objetivo: 750, pagado: 0 },
+            { id: 'm5', nombre: 'Diego Hood', objetivo: 1000, pagado: 0 }
+        ],
         semanasMes: [],
         cierresMensualesDetallados: [],
         fondoInicialMes: 0,
@@ -540,14 +558,10 @@
 
     const nombresMeses = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
     
-    // Mes de trabajo actual por defecto: Septiembre (8) de 2026
     let mesIndexTrabajo = 8; 
     let anioTrabajo = 2026;
-
-    // Vista visual del calendario (arranca en Octubre para ver el mes entrante)
     let mesIndexVisual = 9; 
     let anioVisual = 2026;
-
     let diaSeleccionadoCalendario = null;
 
     function cargarDB() {
@@ -555,7 +569,7 @@
         if (guardado) {
             try {
                 let parsed = JSON.parse(guardado);
-                db.deudaInicialBase = parsed.deudaInicialBase !== undefined ? parsed.deudaInicialBase : 10000;
+                if (parsed.metasPrioritarias) db.metasPrioritarias = parsed.metasPrioritarias;
                 db.semanasMes = parsed.semanasMes || [];
                 db.cierresMensualesDetallados = parsed.cierresMensualesDetallados || [];
                 db.fondoInicialMes = parsed.fondoInicialMes !== undefined ? parsed.fondoInicialMes : 0;
@@ -698,7 +712,6 @@
             grid.appendChild(cell);
         }
 
-        // Verificamos si estamos viendo un mes que ya fue cerrado en el historial para cargar sus checks históricos
         let mesCerradoEnHistorial = db.cierresMensualesDetallados.find(c => c.mesIndex === mesIndexVisual && c.anio === anioVisual);
         let checksDelMesVisual = mesCerradoEnHistorial ? (mesCerradoEnHistorial.gastosPagados || {}) : db.gastosPagados;
 
@@ -894,6 +907,59 @@
         }
     }
 
+    function renderizarMetas() {
+        let contenedor = document.getElementById('listaMetasPrioritarias');
+        contenedor.innerHTML = "";
+        let metaTotalRestante = 0;
+
+        db.metasPrioritarias.forEach((meta, idx) => {
+            let pendienteMeta = meta.objetivo - (meta.pagado || 0);
+            if(pendienteMeta < 0) pendienteMeta = 0;
+            metaTotalRestante += pendienteMeta;
+
+            let div = document.createElement('div');
+            div.style.cssText = "display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; margin-bottom: 4px;";
+            div.innerHTML = `
+                <span>${idx + 1}. ${meta.nombre} ($${meta.objetivo})</span>
+                <span style="font-weight: 600; color: ${pendienteMeta === 0 ? 'var(--success)' : 'var(--warning)'};">
+                    ${pendienteMeta === 0 ? '✓ Pagado' : 'Restan $' + pendienteMeta.toFixed(2)}
+                </span>
+            `;
+            contenedor.appendChild(div);
+        });
+
+        document.getElementById('lblDeuda').innerText = "$" + metaTotalRestante.toFixed(2);
+    }
+
+    function generarSugerenciaAbono(montoAbono) {
+        let txtBox = document.getElementById('txtSugerenciaAbono');
+        if (montoAbono <= 0) {
+            txtBox.innerText = "No hay saldo disponible para abono esta semana.";
+            return;
+        }
+
+        let restantePorAsignar = montoAbono;
+        let sugerenciaTexto = [];
+
+        // Simulamos la distribución respetando la prioridad de la lista
+        for (let meta of db.metasPrioritarias) {
+            let pendiente = meta.objetivo - (meta.pagado || 0);
+            if (pendiente > 0) {
+                let aPagar = Math.min(restantePorAsignar, pendiente);
+                sugerenciaTexto.translate ? null : null;
+                sugerenciaTexto.push(`$${aPagar.toFixed(2)} para <strong>${meta.nombre}</strong>`);
+                restantePorAsignar -= aPagar;
+                if (restantePorAsignar <= 0) break;
+            }
+        }
+
+        if (sugerenciaTexto.length > 0) {
+            txtBox.innerHTML = `Sugerimos abonar: ${sugerenciaTexto.join(' y ')}. ` + (restantePorAsignar > 0 ? `(Te sobran $${restantePorAsignar.toFixed(2)} libres).` : '');
+        } else {
+            txtBox.innerText = "¡Felicidades! Todas las metas prioritarias ya están completadas.";
+        }
+    }
+
     function guardarGastosYChecks() {
         recalcularDeudaTotal();
         guardarDB();
@@ -972,7 +1038,6 @@
     }
 
     function recalcularDeudaTotal() {
-        let deudaTemp = db.deudaInicialBase;
         let totalGastos = calcularTotalesGastos();
         let numSemanasMes = listaSemanasMes.length > 0 ? listaSemanasMes.length : 4;
         let gastoSemanalBase = totalGastos / numSemanasMes;
@@ -986,11 +1051,9 @@
                 let abono = netoSem - gastoSemanalBase;
                 s.abono = abono < 0 ? 0 : abono;
             }
-            deudaTemp -= s.abono;
         });
 
-        if(deudaTemp < 0) deudaTemp = 0;
-        document.getElementById('lblDeuda').innerText = "$" + deudaTemp.toFixed(2);
+        renderizarMetas();
         guardarDB();
     }
 
@@ -1053,6 +1116,7 @@
         document.getElementById('resAbono').innerText = "$" + abono.toFixed(2);
         document.getElementById('resultadoCard').style.display = "block";
 
+        generarSugerenciaAbono(abono);
         actualizarTablaSemanas();
         document.getElementById('ingresoSemanal').value = "";
         document.getElementById('sinAbonoDeuda').checked = false;
@@ -1109,7 +1173,6 @@
             return;
         }
 
-        // Guardamos exactamente el mes que estábamos cerrando (ej. Septiembre)
         let nombreMesCerrado = nombresMeses[mesIndexTrabajo] + " " + anioTrabajo;
         let indexMesCerrado = mesIndexTrabajo;
         let anioCerrado = anioTrabajo;
@@ -1132,11 +1195,11 @@
             totalDeudaPagada: totalDeudaPagada,
             remanenteSobrante: remanenteSobrante,
             semanasDetalle: [...db.semanasMes],
-            gastosPagados: { ...db.gastosPagados } // ¡Guardamos los checks específicos de este mes!
+            gastosPagados: { ...db.gastosPagados }
         });
 
         db.semanasMes = [];
-        db.gastosPagados = {}; // Limpiamos los checks actuales para el nuevo mes que arranca
+        db.gastosPagados = {};
         
         sincronizarFondoArrastre();
         guardarDB();
@@ -1147,7 +1210,6 @@
 
         alert(`¡Mes de ${nombreMesCerrado} cerrado con éxito!\nSe guardaron tus pagos tachados y se arrastraron $${remanenteSobrante.toFixed(2)} al siguiente mes.`);
         
-        // Pasamos al siguiente mes de trabajo (Octubre)
         mesIndexTrabajo++;
         if(mesIndexTrabajo > 11) {
             mesIndexTrabajo = 0;
@@ -1335,6 +1397,7 @@
         });
         sincronizarFondoArrastre();
         
+        renderizarMetas();
         inicializarSelectSemanas();
         renderizarCalendario();
         recalcularDeudaTotal();
