@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Finanzas Diego PRO - Control de Metas Prioritarias</title>
+    <title>Finanzas Diego PRO - Abonos Parciales y Metas</title>
     <style>
         :root {
             --bg-dark: #0b0f19;
@@ -162,14 +162,6 @@
             border: 1px solid var(--border);
         }
 
-        .calendar-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 10px;
-            font-size: 0.9rem;
-            font-weight: 600;
-        }
         .calendar-grid {
             display: grid;
             grid-template-columns: repeat(7, 1fr);
@@ -335,7 +327,7 @@
     <header>
         <div class="badge-mes" id="lblMesActual">Cargando...</div>
         <h1>Finanzas PRO</h1>
-        <p>Control de Metas Prioritarias</p>
+        <p>Control de Metas y Abonos Parciales</p>
     </header>
 
     <!-- Estado de Metas Prioritarias -->
@@ -343,9 +335,8 @@
         <h2>Meta Total Restante</h2>
         <div class="metric-value danger" id="lblDeuda">$3,128.00</div>
         
-        <!-- Lista Desglosada de Metas con opción de tildar -->
         <div style="margin-top: 10px; border-top: 1px dashed var(--border); padding-top: 8px;">
-            <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; margin-bottom: 6px; font-weight: 600;">Progreso de Metas (Toca para tachar):</div>
+            <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; margin-bottom: 6px; font-weight: 600;">Progreso de Metas (Toca para abonar o pagar):</div>
             <div id="listaMetasPrioritarias"></div>
         </div>
     </div>
@@ -458,7 +449,7 @@
         </div>
     </div>
 
-    <!-- Historial Detallado de Cierres Mensuales (Editable) -->
+    <!-- Historial Detallado de Cierres Mensuales -->
     <div class="card">
         <h2>Historial de Meses</h2>
         <div id="contenedorHistorialDetallado">
@@ -467,7 +458,28 @@
     </div>
 </div>
 
-<!-- Modal para Agregar / Editar Pago -->
+<!-- Modal para Abonar Parcialmente a una Meta -->
+<div class="modal-overlay" id="modalAbonoMeta">
+    <div class="modal-content">
+        <h2 id="modalMetaTitulo">Abonar a Meta</h2>
+        <input type="hidden" id="modalMetaIndex" value="">
+        <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 12px;">
+            <div class="metric-row"><span class="metric-label">Monto Objetivo:</span><span class="metric-value primary" id="modalMetaObjetivo">$0.00</span></div>
+            <div class="metric-row"><span class="metric-label">Pagado Acumulado:</span><span class="metric-value success" id="modalMetaPagado">$0.00</span></div>
+            <div class="metric-row"><span class="metric-label">Resta Actual:</span><span class="metric-value warning" id="modalMetaResta">$0.00</span></div>
+        </div>
+        <div class="form-group">
+            <label>Monto a abonar hoy ($)</label>
+            <input type="number" id="modalMontoAbonoInput" placeholder="Ej. 200" step="0.01">
+        </div>
+        <div style="display: flex; gap: 6px; margin-top: 14px;">
+            <button class="btn btn-success" style="padding: 10px;" onclick="guardarAbonoMeta()">Registrar Abono</button>
+            <button class="btn" style="background-color: #1e293b; padding: 10px;" onclick="cerrarModalAbonoMeta()">Cancelar</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Agregar / Editar Pago de Gastos del Mes -->
 <div class="modal-overlay" id="modalGasto">
     <div class="modal-content">
         <h2 id="modalGastoTitulo">Nuevo Pago</h2>
@@ -491,7 +503,7 @@
     </div>
 </div>
 
-<!-- Modal para Editar Mes del Historial y sus Semanas -->
+<!-- Modal para Editar Mes del Historial -->
 <div class="modal-overlay" id="modalEditarHistorial">
     <div class="modal-content">
         <h2>Editar Mes Cerrado</h2>
@@ -519,7 +531,7 @@
 </div>
 
 <script>
-    const STORAGE_KEY = 'finanzas_diego_pro_master_v4';
+    const STORAGE_KEY = 'finanzas_diego_pro_master_v6';
     
     let db = {
         metasPrioritarias: [
@@ -556,8 +568,7 @@
 
     const nombresMeses = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
     
-    // Configuramos automáticamente octubre (9) de 2026 como mes activo actual
-    let mesIndexTrabajo = 9; 
+    let mesIndexTrabajo = 9; // Octubre
     let anioTrabajo = 2026;
     let mesIndexVisual = 9; 
     let anioVisual = 2026;
@@ -906,17 +917,40 @@
         }
     }
 
-    function toggleMetaPagada(index) {
+    function abrirModalAbonoMeta(index) {
         let meta = db.metasPrioritarias[index];
-        let pagadoActual = meta.pagado || 0;
+        let pagado = meta.pagado || 0;
+        let resta = meta.objetivo - pagado;
+        if(resta < 0) resta = 0;
+
+        document.getElementById('modalMetaIndex').value = index;
+        document.getElementById('modalMetaTitulo').innerText = "Abonar: " + meta.nombre;
+        document.getElementById('modalMetaObjetivo').innerText = "$" + meta.objetivo.toFixed(2);
+        document.getElementById('modalMetaPagado').innerText = "$" + pagado.toFixed(2);
+        document.getElementById('modalMetaResta').innerText = "$" + resta.toFixed(2);
+        document.getElementById('modalMontoAbonoInput').value = "";
         
-        if (pagadoActual >= meta.objetivo) {
-            meta.pagado = 0; // Desmarcar
-        } else {
-            meta.pagado = meta.objetivo; // Marcar como pagado completo
+        document.getElementById('modalAbonoMeta').style.display = "flex";
+    }
+
+    function cerrarModalAbonoMeta() {
+        document.getElementById('modalAbonoMeta').style.display = "none";
+    }
+
+    function guardarAbonoMeta() {
+        let idx = parseInt(document.getElementById('modalMetaIndex').value);
+        let monto = parseFloat(document.getElementById('modalMontoAbonoInput').value) || 0;
+        if(monto <= 0) {
+            alert("Ingresa un monto válido para abonar.");
+            return;
         }
-        
+
+        let meta = db.metasPrioritarias[idx];
+        meta.pagado = (meta.pagado || 0) + monto;
+        if(meta.pagado > meta.objetivo) meta.pagado = meta.objetivo;
+
         guardarDB();
+        cerrarModalAbonoMeta();
         renderizarMetas();
     }
 
@@ -933,17 +967,20 @@
             let estaCompleto = pendienteMeta === 0;
 
             let div = document.createElement('div');
-            div.style.cssText = "display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; margin-bottom: 6px; background: #0b0f19; padding: 6px 8px; border-radius: 6px; border: 1px solid var(--border); cursor: pointer;";
-            div.onclick = () => toggleMetaPagada(idx);
+            div.style.cssText = "display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; margin-bottom: 6px; background: #0b0f19; padding: 8px 10px; border-radius: 6px; border: 1px solid var(--border); cursor: pointer;";
+            div.onclick = () => abrirModalAbonoMeta(idx);
             
             div.innerHTML = `
-                <div style="display: flex; align-items: center; gap: 6px;">
-                    <input type="checkbox" ${estaCompleto ? 'checked' : ''} onclick="event.stopPropagation(); toggleMetaPagada(${idx});" style="width: 14px; height: 14px; accent-color: var(--success); cursor: pointer;">
-                    <span style="${estaCompleto ? 'text-decoration: line-through; color: var(--success);' : ''}">${idx + 1}. ${meta.nombre} ($${meta.objetivo})</span>
+                <div style="display: flex; flex-direction: column; gap: 2px;">
+                    <span style="font-weight: 600; ${estaCompleto ? 'text-decoration: line-through; color: var(--success);' : ''}">${idx + 1}. ${meta.nombre} ($${meta.objetivo})</span>
+                    <span style="font-size: 0.72rem; color: var(--text-muted);">Pagado: $${pagado.toFixed(2)}</span>
                 </div>
-                <span style="font-weight: 600; color: ${estaCompleto ? 'var(--success)' : 'var(--warning)'};">
-                    ${estaCompleto ? '✓ Pagado' : 'Restan $' + pendienteMeta.toFixed(2)}
-                </span>
+                <div style="text-align: right;">
+                    <span style="font-weight: 600; color: ${estaCompleto ? 'var(--success)' : 'var(--warning)'}; display: block;">
+                        ${estaCompleto ? '✓ Finiquitada' : 'Restan $' + pendienteMeta.toFixed(2)}
+                    </span>
+                    <span style="font-size: 0.7rem; color: var(--primary);">+ Abonar</span>
+                </div>
             `;
             contenedor.appendChild(div);
         });
@@ -954,7 +991,7 @@
     function generarSugerenciaAbono(montoAbono) {
         let txtBox = document.getElementById('txtSugerenciaAbono');
         if (montoAbono <= 0) {
-            txtBox.innerText = "No hay saldo disponible para abono esta semana.";
+            txtBox.innerText = "Has seleccionado sin abono esta semana ($0). Todo tu ingreso neto queda libre para tus gastos o reserva.";
             return;
         }
 
@@ -972,7 +1009,7 @@
         }
 
         if (sugerenciaTexto.length > 0) {
-            txtBox.innerHTML = `Sugerimos abonar: ${sugerenciaTexto.join(' y ')}. ` + (restantePorAsignar > 0 ? `(Te sobran $${restantePorAsignar.toFixed(2)} libres).` : '');
+            txtBox.innerHTML = `Sugerimos abonar hoy: ${sugerenciaTexto.join(' y ')}. ` + (restantePorAsignar > 0 ? `(Te sobran $${restantePorAsignar.toFixed(2)} libres).` : '');
         } else {
             txtBox.innerText = "¡Felicidades! Todas las metas prioritarias ya están completadas.";
         }
