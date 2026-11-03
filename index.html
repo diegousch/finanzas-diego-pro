@@ -598,7 +598,6 @@
 
     const nombresMeses = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
     
-    // Detección automática del mes y año actual real del dispositivo
     let fechaHoyReal = new Date();
     let mesIndexTrabajo = fechaHoyReal.getMonth(); 
     let anioTrabajo = fechaHoyReal.getFullYear();
@@ -672,7 +671,7 @@
         while (d.getMonth() === month || (numSemana <= 5 && d.getMonth() === month + 1 && d.getDate() <= 7)) {
             let inicioSemanaDate = new Date(d);
             let finSemanaDate = new Date(d);
-            finSemanaDate.setDate(finSemanaDate.getDate() + 4); // Viernes
+            finSemanaDate.setDate(finSemanaDate.getDate() + 4);
 
             let limiteTimestamp = new Date(finSemanaDate.getFullYear(), finSemanaDate.getMonth(), finSemanaDate.getDate(), 23, 59, 59).getTime();
 
@@ -1180,7 +1179,9 @@
         }
 
         if (sugerenciaTexto.length > 0) {
-            txtBox.innerHTML = `Sugerimos abonar hoy: ${sugerenciaTexto.join(' y ')}. ` + (restantePorAsignar > 0 ? `(Te sobran $${restantePorAsignar.toFixed(2)} libres).` : '');
+            txtBox.innerHTML = `Sugerencia automática: ${sugerenciaTexto.join(' y ')}. ` + 
+                (restantePorAsignar > 0 ? `(Quedan $${restantePorAsignar.toFixed(2)} libres).` : '') + 
+                `<br><em style="color: var(--text-muted); font-size: 0.75rem;">💡 Recuerda: Puedes abonar manualmente la cantidad que desees tocando directamente sobre cualquier meta arriba.</em>`;
         } else {
             txtBox.innerText = "¡Felicidades! Todas las metas prioritarias ya están completadas.";
         }
