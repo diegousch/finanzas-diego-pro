@@ -428,7 +428,7 @@
                 <span class="metric-value success" id="lblFondoInicial" style="font-size: 0.9rem;">$0.00</span>
             </div>
             <div class="metric-row" style="margin-top: 0; margin-bottom: 4px;">
-                <span class="metric-label">Total Ganado (Neto):</span>
+                <span class="metric-label">Total Ingresos Netos del Mes:</span>
                 <span class="metric-value primary" id="lblTotalGanadoMes" style="font-size: 0.95rem;">$0.00</span>
             </div>
             <div class="metric-row" style="margin-top: 0; margin-bottom: 4px;">
@@ -940,13 +940,13 @@
     }
 
     function actualizarResumenGanancias(totalGastosParam) {
-        let totalGanadoSemanas = db.semanasMes.reduce((acc, curr) => acc + curr.abono, 0); // Basado en el abono real que va a metas
+        let totalIngresosNetosMes = db.semanasMes.reduce((acc, curr) => acc + (curr.ingresoNeto || 0), 0);
         let fondoInicial = db.fondoInicialMes || 0;
-        let totalIngresosGeneral = fondoInicial + totalGanadoSemanas;
+        let totalIngresosGeneral = fondoInicial + totalIngresosNetosMes;
         let balance = totalIngresosGeneral - totalGastosParam;
 
         document.getElementById('lblFondoInicial').innerText = "$" + fondoInicial.toFixed(2);
-        document.getElementById('lblTotalGanadoMes').innerText = "$" + totalGanadoSemanas.toFixed(2);
+        document.getElementById('lblTotalGanadoMes').innerText = "$" + totalIngresosNetosMes.toFixed(2);
         
         let elBalance = document.getElementById('lblBalanceMes');
         elBalance.innerText = "$" + balance.toFixed(2);
@@ -1032,7 +1032,7 @@
         document.getElementById('modalMetaResta').innerText = "$" + resta.toFixed(2);
         document.getElementById('modalMontoAbonoInput').value = "";
         document.getElementById('lblInputAbonoTitulo').innerText = "Monto de tu abono manual ($)";
-        document.getElementById('btnAccionAbono').innerText = "Registrar y Sincronizar en Semana";
+        document.getElementById('btnAccionAbono').innerText = "Registrar Abono";
         
         renderizarHistorialAbonos(index);
         document.getElementById('modalAbonoMeta').style.display = "flex";
@@ -1099,7 +1099,7 @@
                 fecha: fechaHoy
             });
 
-            // VINCULACIÓN AUTOMÁTICA: Si hay una semana registrada actualmente, actualizamos su abono con este valor manual exacto
+            // Si ya hay una semana registrada, actualizamos su abono al valor exacto ingresado
             if (db.semanasMes.length > 0) {
                 let ultimaSemana = db.semanasMes[db.semanasMes.length - 1];
                 ultimaSemana.abono = monto;
@@ -1113,7 +1113,6 @@
         actualizarTablaSemanas();
         calcularTotalesGastos();
         
-        // Actualizar tarjeta de resultados si existe
         if (db.semanasMes.length > 0) {
             let ultimaSemana = db.semanasMes[db.semanasMes.length - 1];
             document.getElementById('resAbono').innerText = "$" + ultimaSemana.abono.toFixed(2);
@@ -1196,7 +1195,7 @@
         if (sugerenciaTexto.length > 0) {
             txtBox.innerHTML = `Sugerencia automática: ${sugerenciaTexto.join(' y ')}. ` + 
                 (restantePorAsignar > 0 ? `(Quedan $${restantePorAsignar.toFixed(2)} libres).` : '') + 
-                `<br><em style="color: var(--success); font-size: 0.75rem;">💡 Toca cualquier meta arriba para abonar la cantidad exacta que desees y se actualizará automáticamente en tu semana.</em>`;
+                `<br><em style="color: var(--success); font-size: 0.75rem;">💡 Toca cualquier meta arriba para abonar la cantidad exacta que desees.</em>`;
         } else {
             txtBox.innerText = "¡Felicidades! Todas las metas prioritarias ya están completadas.";
         }
@@ -1288,7 +1287,7 @@
         let sinAbono = document.getElementById('sinAbonoDeuda').checked;
 
         if(ingresoBruto <= 0 && !sinAbono) {
-            alert("Ingresa un monto válido o marca sin abono.");
+            alert("Ingresa un monto válido.");
             return;
         }
 
@@ -1399,7 +1398,7 @@
         let indexMesCerrado = mesIndexTrabajo;
         let anioCerrado = anioTrabajo;
 
-        let totalGanadoSemanas = db.semanasMes.reduce((acc, curr) => acc + curr.abono, 0);
+        let totalGanadoSemanas = db.semanasMes.reduce((acc, curr) => acc + (curr.ingresoNeto || 0), 0);
         let totalDeudaPagada = db.semanasMes.reduce((acc, curr) => acc + curr.abono, 0);
         let totalIngresosMes = (db.fondoInicialMes || 0) + totalGanadoSemanas;
         
@@ -1530,7 +1529,7 @@
         c.mesNombre = document.getElementById('histNombreMes').value.trim() || c.mesNombre;
         c.fondoInicial = parseFloat(document.getElementById('histFondoInicial').value) || 0;
 
-        let totalGanadoSemanas = c.semanasDetalle.reduce((acc, curr) => acc + curr.abono, 0);
+        let totalGanadoSemanas = c.semanasDetalle.reduce((acc, curr) => acc + (curr.ingresoNeto || 0), 0);
         let totalIngresosMes = c.fondoInicial + totalGanadoSemanas;
         
         let remanenteSobrante = totalIngresosMes - (c.totalGastado || 0);
@@ -1593,7 +1592,7 @@
                     </div>
                 </div>
                 <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 6px;">
-                    Fondo: $${(c.fondoInicial || 0).toFixed(2)} | Ganado Neto: $${(c.totalGanado || 0).toFixed(2)} | Sobrante: <strong style="color: var(--success);">$${(c.remanenteSobrante || 0).toFixed(2)}</strong>
+                    Fondo: $${(c.fondoInicial || 0).toFixed(2)} | Ingresos Netos: $${(c.totalGanado || 0).toFixed(2)} | Sobrante: <strong style="color: var(--success);">$${(c.remanenteSobrante || 0).toFixed(2)}</strong>
                 </div>
                 <table>
                     <thead>
