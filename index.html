@@ -435,8 +435,12 @@
                 <span class="metric-label">Total Gastos Estimados:</span>
                 <span class="metric-value warning" id="lblTotalGastos" style="font-size: 0.95rem;">$0.00</span>
             </div>
+            <div class="metric-row" style="margin-top: 0; margin-bottom: 4px;">
+                <span class="metric-label">Total Abonos a Metas:</span>
+                <span class="metric-value success" id="lblTotalAbonosMes" style="font-size: 0.95rem;">$0.00</span>
+            </div>
             <div class="metric-row" style="margin-top: 0; border-top: 1px dashed var(--border); padding-top: 4px;">
-                <span class="metric-label" style="font-weight: 500;">Balance Neto:</span>
+                <span class="metric-label" style="font-weight: 500;">Balance Neto Disponible:</span>
                 <span class="metric-value success" id="lblBalanceMes" style="font-size: 1rem;">$0.00</span>
             </div>
         </div>
@@ -941,12 +945,16 @@
 
     function actualizarResumenGanancias(totalGastosParam) {
         let totalIngresosNetosMes = db.semanasMes.reduce((acc, curr) => acc + (curr.ingresoNeto || 0), 0);
+        let totalAbonosMetas = db.semanasMes.reduce((acc, curr) => acc + (curr.abono || 0), 0);
         let fondoInicial = db.fondoInicialMes || 0;
         let totalIngresosGeneral = fondoInicial + totalIngresosNetosMes;
-        let balance = totalIngresosGeneral - totalGastosParam;
+        
+        // CORRECCIÓN CLAVE: Restar abonos realizados a las metas del balance disponible
+        let balance = totalIngresosGeneral - totalGastosParam - totalAbonosMetas;
 
         document.getElementById('lblFondoInicial').innerText = "$" + fondoInicial.toFixed(2);
         document.getElementById('lblTotalGanadoMes').innerText = "$" + totalIngresosNetosMes.toFixed(2);
+        document.getElementById('lblTotalAbonosMes').innerText = "$" + totalAbonosMetas.toFixed(2);
         
         let elBalance = document.getElementById('lblBalanceMes');
         elBalance.innerText = "$" + balance.toFixed(2);
@@ -1099,7 +1107,7 @@
                 fecha: fechaHoy
             });
 
-            // Si ya hay una semana registrada, actualizamos su abono al valor exacto ingresado
+            // Si hay semanas registradas, actualizamos el abono a la semana en curso
             if (db.semanasMes.length > 0) {
                 let ultimaSemana = db.semanasMes[db.semanasMes.length - 1];
                 ultimaSemana.abono = monto;
@@ -1403,7 +1411,9 @@
         let totalIngresosMes = (db.fondoInicialMes || 0) + totalGanadoSemanas;
         
         let totalGastosMesGral = calcularTotalesGastos();
-        let remanenteSobrante = totalIngresosMes - totalGastosMesGral;
+        
+        // CORRECCIÓN EN EL CÁLCULO DE REMANENTE AL CERRAR MES
+        let remanenteSobrante = totalIngresosMes - totalGastosMesGral - totalDeudaPagada;
         if(remanenteSobrante < 0) remanenteSobrante = 0;
 
         db.cierresMensualesDetallados.push({
@@ -1530,9 +1540,10 @@
         c.fondoInicial = parseFloat(document.getElementById('histFondoInicial').value) || 0;
 
         let totalGanadoSemanas = c.semanasDetalle.reduce((acc, curr) => acc + (curr.ingresoNeto || 0), 0);
+        let totalDeudaPagada = c.semanasDetalle.reduce((acc, curr) => acc + (curr.abono || 0), 0);
         let totalIngresosMes = c.fondoInicial + totalGanadoSemanas;
         
-        let remanenteSobrante = totalIngresosMes - (c.totalGastado || 0);
+        let remanenteSobrante = totalIngresosMes - (c.totalGastado || 0) - totalDeudaPagada;
         if(remanenteSobrante < 0) remanenteSobrante = 0;
 
         c.totalGanado = totalGanadoSemanas;
