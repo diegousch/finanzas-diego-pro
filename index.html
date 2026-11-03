@@ -466,19 +466,20 @@
     <div class="modal-content">
         <h2 id="modalMetaTitulo">Abonar a Meta</h2>
         <input type="hidden" id="modalMetaIndex" value="">
+        <input type="hidden" id="editAbonoIndex" value="-1">
         <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 12px;">
             <div class="metric-row"><span class="metric-label">Monto Objetivo:</span><span class="metric-value primary" id="modalMetaObjetivo">$0.00</span></div>
             <div class="metric-row"><span class="metric-label">Pagado Acumulado:</span><span class="metric-value success" id="modalMetaPagado">$0.00</span></div>
             <div class="metric-row"><span class="metric-label">Resta Actual:</span><span class="metric-value warning" id="modalMetaResta">$0.00</span></div>
         </div>
         <div class="form-group">
-            <label>Monto a abonar hoy ($)</label>
+            <label id="lblInputAbonoTitulo">Monto a abonar hoy ($)</label>
             <input type="number" id="modalMontoAbonoInput" placeholder="Ej. 200" step="0.01">
         </div>
-        <button class="btn btn-success" style="padding: 10px; margin-bottom: 10px;" onclick="guardarAbonoMeta()">Registrar Nuevo Abono</button>
+        <button class="btn btn-success" id="btnAccionAbono" style="padding: 10px; margin-bottom: 10px;" onclick="guardarAbonoMeta()">Registrar Nuevo Abono</button>
         
-        <!-- Historial de Abonos con opción de eliminar -->
-        <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; margin-top: 10px; margin-bottom: 4px; font-weight: 600;">Historial de Abonos (Toca ✕ para borrar uno):</div>
+        <!-- Historial de Abonos con opción de editar o eliminar -->
+        <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; margin-top: 10px; margin-bottom: 4px; font-weight: 600;">Historial de Abonos:</div>
         <div id="listaHistorialAbonos" style="max-height: 120px; overflow-y: auto; margin-bottom: 12px;"></div>
 
         <div style="display: flex; gap: 6px; border-top: 1px solid var(--border); padding-top: 10px;">
@@ -560,7 +561,7 @@
 </div>
 
 <script>
-    const STORAGE_KEY = 'finanzas_diego_pro_master_v7';
+    const STORAGE_KEY = 'finanzas_diego_pro_master_v9';
     
     let db = {
         metasPrioritarias: [
@@ -597,10 +598,12 @@
 
     const nombresMeses = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
     
-    let mesIndexTrabajo = 9; // Octubre
-    let anioTrabajo = 2026;
-    let mesIndexVisual = 9; 
-    let anioVisual = 2026;
+    // Detección automática del mes y año actual real del dispositivo
+    let fechaHoyReal = new Date();
+    let mesIndexTrabajo = fechaHoyReal.getMonth(); 
+    let anioTrabajo = fechaHoyReal.getFullYear();
+    let mesIndexVisual = mesIndexTrabajo; 
+    let anioVisual = anioTrabajo;
     let diaSeleccionadoCalendario = null;
 
     function cargarDB() {
@@ -661,15 +664,17 @@
         if (diaSemana1 !== 1) {
             let ajuste = (diaSemana1 === 0) ? -6 : 1 - diaSemana1;
             d.setDate(d.getDate() + ajuste);
-            if(d.getMonth() !== month) {
+            if(d.getMonth() !== month && d.getDate() > 20) {
                 d.setDate(d.getDate() + 7);
             }
         }
 
-        while (d.getMonth() === month || (numSemana === 4 && d.getMonth() === month + 1)) {
+        while (d.getMonth() === month || (numSemana <= 5 && d.getMonth() === month + 1 && d.getDate() <= 7)) {
             let inicioSemanaDate = new Date(d);
             let finSemanaDate = new Date(d);
-            finSemanaDate.setDate(finSemanaDate.getDate() + 4);
+            finSemanaDate.setDate(finSemanaDate.getDate() + 4); // Viernes
+
+            let limiteTimestamp = new Date(finSemanaDate.getFullYear(), finSemanaDate.getMonth(), finSemanaDate.getDate(), 23, 59, 59).getTime();
 
             let textoRango = (inicioSemanaDate.getMonth() === finSemanaDate.getMonth()) 
                 ? `Lunes ${inicioSemanaDate.getDate()} al Viernes ${finSemanaDate.getDate()}` 
@@ -678,6 +683,7 @@
             semanas.push({
                 id: `Semana ${numSemana}`,
                 inicioTimestamp: inicioSemanaDate.getTime(),
+                finTimestamp: limiteTimestamp,
                 texto: `Semana ${numSemana} (${textoRango})`
             });
 
@@ -705,15 +711,17 @@
     function seleccionarSemanaAutomatica() {
         let hoyTime = new Date().getTime();
         let select = document.getElementById('nombreSemana');
-        let encontrada = listaSemanasMes.find((s, idx) => {
-            let siguiente = listaSemanasMes[idx + 1];
-            if (!siguiente) return true;
-            return hoyTime >= s.inicioTimestamp && hoyTime < siguiente.inicioTimestamp;
+        
+        let encontrada = listaSemanasMes.find(s => {
+            return hoyTime >= s.inicioTimestamp && hoyTime <= s.finTimestamp;
         });
+
         if (encontrada) {
             select.value = encontrada.id;
         } else if (listaSemanasMes.length > 0) {
-            select.value = listaSemanasMes[0].id;
+            // Si la fecha actual está fuera de los rangos de lunes a viernes, selecciona la más cercana o la primera
+            let cercana = listaSemanasMes.find(s => hoyTime < s.inicioTimestamp) || listaSemanasMes[listaSemanasMes.length - 1];
+            select.value = cercana.id;
         }
     }
 
@@ -1020,11 +1028,14 @@
         if(resta < 0) resta = 0;
 
         document.getElementById('modalMetaIndex').value = index;
+        document.getElementById('editAbonoIndex').value = "-1";
         document.getElementById('modalMetaTitulo').innerText = "Abonos: " + meta.nombre;
         document.getElementById('modalMetaObjetivo').innerText = "$" + meta.objetivo.toFixed(2);
         document.getElementById('modalMetaPagado').innerText = "$" + totalPagado.toFixed(2);
         document.getElementById('modalMetaResta').innerText = "$" + resta.toFixed(2);
         document.getElementById('modalMontoAbonoInput').value = "";
+        document.getElementById('lblInputAbonoTitulo').innerText = "Monto a abonar hoy ($)";
+        document.getElementById('btnAccionAbono').innerText = "Registrar Nuevo Abono";
         
         renderizarHistorialAbonos(index);
         document.getElementById('modalAbonoMeta').style.display = "flex";
@@ -1046,10 +1057,22 @@
             div.style.padding = "4px 8px";
             div.innerHTML = `
                 <span style="font-size: 0.75rem;">$${abono.monto.toFixed(2)} (${abono.fecha || 'Abono'})</span>
-                <button class="btn-icon delete" onclick="eliminarAbonoMeta(${index}, ${aIdx})" title="Eliminar Abono">✕</button>
+                <div style="display: flex; gap: 2px;">
+                    <button class="btn-icon" onclick="cargarAbonoParaEditar(${index}, ${aIdx})" title="Editar Abono">✏️</button>
+                    <button class="btn-icon delete" onclick="eliminarAbonoMeta(${index}, ${aIdx})" title="Eliminar Abono">✕</button>
+                </div>
             `;
             contenedor.appendChild(div);
         });
+    }
+
+    function cargarAbonoParaEditar(metaIdx, abonoIdx) {
+        let meta = db.metasPrioritarias[metaIdx];
+        let abono = meta.abonos[abonoIdx];
+        document.getElementById('editAbonoIndex').value = abonoIdx;
+        document.getElementById('modalMontoAbonoInput').value = abono.monto;
+        document.getElementById('lblInputAbonoTitulo').innerText = "Editar monto del abono ($)";
+        document.getElementById('btnAccionAbono').innerText = "Guardar Cambios de Abono";
     }
 
     function cerrarModalAbonoMeta() {
@@ -1058,24 +1081,30 @@
 
     function guardarAbonoMeta() {
         let idx = parseInt(document.getElementById('modalMetaIndex').value);
+        let editAIndex = parseInt(document.getElementById('editAbonoIndex').value);
         let monto = parseFloat(document.getElementById('modalMontoAbonoInput').value) || 0;
+        
         if(monto <= 0) {
-            alert("Ingresa un monto válido para abonar.");
+            alert("Ingresa un monto válido.");
             return;
         }
 
         let meta = db.metasPrioritarias[idx];
         if(!meta.abonos) meta.abonos = [];
-        
-        let fechaHoy = new Date().toLocaleDateString('es-ES', { day: '2-digit', month: 'short' });
-        meta.abonos.push({
-            id: Date.now(),
-            monto: monto,
-            fecha: fechaHoy
-        });
+
+        if(editAIndex >= 0) {
+            meta.abonos[editAIndex].monto = monto;
+        } else {
+            let fechaHoy = new Date().toLocaleDateString('es-ES', { day: '2-digit', month: 'short' });
+            meta.abonos.push({
+                id: Date.now(),
+                monto: monto,
+                fecha: fechaHoy
+            });
+        }
 
         guardarDB();
-        abrirModalAbonoMeta(idx); // Refrescar modal
+        abrirModalAbonoMeta(idx);
         renderizarMetas();
     }
 
