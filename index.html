@@ -360,10 +360,6 @@
             <label>Descuento automático de renta (Nómina)</label>
             <input type="number" id="rentaNomina" value="250" readonly>
         </div>
-        <div class="form-group">
-            <label>Abono real destinado a metas esta semana ($) [Editable]</label>
-            <input type="number" id="abonoPersonalizado" placeholder="Ej. 347" step="0.01">
-        </div>
         <div class="checkbox-group">
             <input type="checkbox" id="sinAbonoDeuda">
             <label for="sinAbonoDeuda">Sin abono a metas esta semana ($0)</label>
@@ -377,7 +373,7 @@
         <div class="metric-row"><span class="metric-label">Semana:</span><span class="metric-value primary" id="resNombre" style="font-size: 0.95rem;">-</span></div>
         <div class="metric-row"><span class="metric-label">Ingreso Neto (Menos $250):</span><span class="metric-value primary" id="resIngreso">$0.00</span></div>
         <div class="metric-row"><span class="metric-label">Apartado Gastos Mes:</span><span class="metric-value warning" id="resGastos">$0.00</span></div>
-        <div class="metric-row"><span class="metric-label">Abono Real Registrado:</span><span class="metric-value success" id="resAbono">$0.00</span></div>
+        <div class="metric-row"><span class="metric-label">Abono Disponible Metas:</span><span class="metric-value success" id="resAbono">$0.00</span></div>
         
         <div id="sugerenciaAbonoBox" style="margin-top: 10px; background: #0b0f19; padding: 10px; border-radius: 8px; border: 1px solid var(--border); font-size: 0.8rem;">
             <strong style="color: var(--primary);">💡 Sugerencia de pago:</strong> <span id="txtSugerenciaAbono">Calculando...</span>
@@ -944,7 +940,7 @@
     }
 
     function actualizarResumenGanancias(totalGastosParam) {
-        let totalGanadoSemanas = db.semanasMes.reduce((acc, curr) => acc + (curr.ingresoNeto !== undefined ? curr.ingresoNeto : (curr.ingreso - 250)), 0);
+        let totalGanadoSemanas = db.semanasMes.reduce((acc, curr) => acc + curr.abono, 0); // Basado en el abono real que va a metas
         let fondoInicial = db.fondoInicialMes || 0;
         let totalIngresosGeneral = fondoInicial + totalGanadoSemanas;
         let balance = totalIngresosGeneral - totalGastosParam;
@@ -1030,13 +1026,13 @@
 
         document.getElementById('modalMetaIndex').value = index;
         document.getElementById('editAbonoIndex').value = "-1";
-        document.getElementById('modalMetaTitulo').innerText = "Abonos: " + meta.nombre;
+        document.getElementById('modalMetaTitulo').innerText = "Abonar a: " + meta.nombre;
         document.getElementById('modalMetaObjetivo').innerText = "$" + meta.objetivo.toFixed(2);
         document.getElementById('modalMetaPagado').innerText = "$" + totalPagado.toFixed(2);
         document.getElementById('modalMetaResta').innerText = "$" + resta.toFixed(2);
         document.getElementById('modalMontoAbonoInput').value = "";
-        document.getElementById('lblInputAbonoTitulo').innerText = "Monto a abonar hoy ($)";
-        document.getElementById('btnAccionAbono').innerText = "Registrar Nuevo Abono";
+        document.getElementById('lblInputAbonoTitulo').innerText = "Monto de tu abono manual ($)";
+        document.getElementById('btnAccionAbono').innerText = "Registrar y Sincronizar en Semana";
         
         renderizarHistorialAbonos(index);
         document.getElementById('modalAbonoMeta').style.display = "flex";
@@ -1102,11 +1098,26 @@
                 monto: monto,
                 fecha: fechaHoy
             });
+
+            // VINCULACIÓN AUTOMÁTICA: Si hay una semana registrada actualmente, actualizamos su abono con este valor manual exacto
+            if (db.semanasMes.length > 0) {
+                let ultimaSemana = db.semanasMes[db.semanasMes.length - 1];
+                ultimaSemana.abono = monto;
+                ultimaSemana.sinAbono = false;
+            }
         }
 
         guardarDB();
-        abrirModalAbonoMeta(idx);
+        cerrarModalAbonoMeta();
         renderizarMetas();
+        actualizarTablaSemanas();
+        calcularTotalesGastos();
+        
+        // Actualizar tarjeta de resultados si existe
+        if (db.semanasMes.length > 0) {
+            let ultimaSemana = db.semanasMes[db.semanasMes.length - 1];
+            document.getElementById('resAbono').innerText = "$" + ultimaSemana.abono.toFixed(2);
+        }
     }
 
     function eliminarAbonoMeta(metaIdx, abonoIdx) {
@@ -1116,6 +1127,7 @@
             guardarDB();
             abrirModalAbonoMeta(metaIdx);
             renderizarMetas();
+            actualizarTablaSemanas();
         }
     }
 
@@ -1184,7 +1196,7 @@
         if (sugerenciaTexto.length > 0) {
             txtBox.innerHTML = `Sugerencia automática: ${sugerenciaTexto.join(' y ')}. ` + 
                 (restantePorAsignar > 0 ? `(Quedan $${restantePorAsignar.toFixed(2)} libres).` : '') + 
-                `<br><em style="color: var(--text-muted); font-size: 0.75rem;">💡 Puedes ajustar el abono real de la semana escribiendo el monto exacto en el campo de arriba.</em>`;
+                `<br><em style="color: var(--success); font-size: 0.75rem;">💡 Toca cualquier meta arriba para abonar la cantidad exacta que desees y se actualizará automáticamente en tu semana.</em>`;
         } else {
             txtBox.innerText = "¡Felicidades! Todas las metas prioritarias ya están completadas.";
         }
@@ -1290,9 +1302,7 @@
         let abonoSugerido = ingresoNeto - gastoSemanalBase;
         if(abonoSugerido < 0) abonoSugerido = 0;
 
-        let abonoInputVal = document.getElementById('abonoPersonalizado').value;
-        let abonoReal = (abonoInputVal !== "") ? parseFloat(abonoInputVal) : abonoSugerido;
-        if(sinAbono) abonoReal = 0;
+        let abonoReal = sinAbono ? 0 : abonoSugerido;
 
         let editIndex = parseInt(document.getElementById('editIndex').value);
 
@@ -1330,7 +1340,6 @@
         generarSugerenciaAbono(abonoSugerido);
         actualizarTablaSemanas();
         document.getElementById('ingresoSemanal').value = "";
-        document.getElementById('abonoPersonalizado').value = "";
         document.getElementById('sinAbonoDeuda').checked = false;
         seleccionarSemanaAutomatica();
     }
@@ -1339,7 +1348,6 @@
         let s = db.semanasMes[index];
         document.getElementById('nombreSemana').value = s.idSemana || listaSemanasMes[0].id;
         document.getElementById('ingresoSemanal').value = s.ingresoBruto !== undefined ? s.ingresoBruto : (s.ingresoNeto + 250);
-        document.getElementById('abonoPersonalizado').value = s.abono;
         document.getElementById('sinAbonoDeuda').checked = !!s.sinAbono;
         document.getElementById('editIndex').value = index;
         document.getElementById('btnProcesar').innerText = "Actualizar Semana";
@@ -1391,7 +1399,7 @@
         let indexMesCerrado = mesIndexTrabajo;
         let anioCerrado = anioTrabajo;
 
-        let totalGanadoSemanas = db.semanasMes.reduce((acc, curr) => acc + (curr.ingresoNeto !== undefined ? curr.ingresoNeto : (curr.ingreso - 250)), 0);
+        let totalGanadoSemanas = db.semanasMes.reduce((acc, curr) => acc + curr.abono, 0);
         let totalDeudaPagada = db.semanasMes.reduce((acc, curr) => acc + curr.abono, 0);
         let totalIngresosMes = (db.fondoInicialMes || 0) + totalGanadoSemanas;
         
@@ -1522,7 +1530,7 @@
         c.mesNombre = document.getElementById('histNombreMes').value.trim() || c.mesNombre;
         c.fondoInicial = parseFloat(document.getElementById('histFondoInicial').value) || 0;
 
-        let totalGanadoSemanas = c.semanasDetalle.reduce((acc, curr) => acc + (curr.ingresoNeto !== undefined ? curr.ingresoNeto : (curr.ingreso - 250)), 0);
+        let totalGanadoSemanas = c.semanasDetalle.reduce((acc, curr) => acc + curr.abono, 0);
         let totalIngresosMes = c.fondoInicial + totalGanadoSemanas;
         
         let remanenteSobrante = totalIngresosMes - (c.totalGastado || 0);
