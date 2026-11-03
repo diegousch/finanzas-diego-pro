@@ -400,7 +400,7 @@
         
         <div class="month-navigator">
             <button class="btn-icon" onclick="cambiarMesVista(-1)" style="font-weight:bold;">◀ Mes Ant.</button>
-            <span id="calMesAnioTitulo" style="font-size: 0.85rem; font-weight: 600; color: var(--primary);">Octubre 2026</span>
+            <span id="calMesAnioTitulo" style="font-size: 0.85rem; font-weight: 600; color: var(--primary);">Cargando...</span>
             <button class="btn-icon" onclick="cambiarMesVista(1)" style="font-weight:bold;">Mes Sig. ▶</button>
         </div>
 
@@ -719,7 +719,6 @@
         if (encontrada) {
             select.value = encontrada.id;
         } else if (listaSemanasMes.length > 0) {
-            // Si la fecha actual está fuera de los rangos de lunes a viernes, selecciona la más cercana o la primera
             let cercana = listaSemanasMes.find(s => hoyTime < s.inicioTimestamp) || listaSemanasMes[listaSemanasMes.length - 1];
             select.value = cercana.id;
         }
