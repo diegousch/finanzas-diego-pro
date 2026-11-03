@@ -360,6 +360,10 @@
             <label>Descuento automático de renta (Nómina)</label>
             <input type="number" id="rentaNomina" value="250" readonly>
         </div>
+        <div class="form-group">
+            <label>Abono real destinado a metas esta semana ($) [Editable]</label>
+            <input type="number" id="abonoPersonalizado" placeholder="Ej. 347" step="0.01">
+        </div>
         <div class="checkbox-group">
             <input type="checkbox" id="sinAbonoDeuda">
             <label for="sinAbonoDeuda">Sin abono a metas esta semana ($0)</label>
@@ -373,7 +377,7 @@
         <div class="metric-row"><span class="metric-label">Semana:</span><span class="metric-value primary" id="resNombre" style="font-size: 0.95rem;">-</span></div>
         <div class="metric-row"><span class="metric-label">Ingreso Neto (Menos $250):</span><span class="metric-value primary" id="resIngreso">$0.00</span></div>
         <div class="metric-row"><span class="metric-label">Apartado Gastos Mes:</span><span class="metric-value warning" id="resGastos">$0.00</span></div>
-        <div class="metric-row"><span class="metric-label">Abono Disponible Metas:</span><span class="metric-value success" id="resAbono">$0.00</span></div>
+        <div class="metric-row"><span class="metric-label">Abono Real Registrado:</span><span class="metric-value success" id="resAbono">$0.00</span></div>
         
         <div id="sugerenciaAbonoBox" style="margin-top: 10px; background: #0b0f19; padding: 10px; border-radius: 8px; border: 1px solid var(--border); font-size: 0.8rem;">
             <strong style="color: var(--primary);">💡 Sugerencia de pago:</strong> <span id="txtSugerenciaAbono">Calculando...</span>
@@ -478,7 +482,6 @@
         </div>
         <button class="btn btn-success" id="btnAccionAbono" style="padding: 10px; margin-bottom: 10px;" onclick="guardarAbonoMeta()">Registrar Nuevo Abono</button>
         
-        <!-- Historial de Abonos con opción de editar o eliminar -->
         <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; margin-top: 10px; margin-bottom: 4px; font-weight: 600;">Historial de Abonos:</div>
         <div id="listaHistorialAbonos" style="max-height: 120px; overflow-y: auto; margin-bottom: 12px;"></div>
 
@@ -1181,14 +1184,13 @@
         if (sugerenciaTexto.length > 0) {
             txtBox.innerHTML = `Sugerencia automática: ${sugerenciaTexto.join(' y ')}. ` + 
                 (restantePorAsignar > 0 ? `(Quedan $${restantePorAsignar.toFixed(2)} libres).` : '') + 
-                `<br><em style="color: var(--text-muted); font-size: 0.75rem;">💡 Recuerda: Puedes abonar manualmente la cantidad que desees tocando directamente sobre cualquier meta arriba.</em>`;
+                `<br><em style="color: var(--text-muted); font-size: 0.75rem;">💡 Puedes ajustar el abono real de la semana escribiendo el monto exacto en el campo de arriba.</em>`;
         } else {
             txtBox.innerText = "¡Felicidades! Todas las metas prioritarias ya están completadas.";
         }
     }
 
     function guardarGastosYChecks() {
-        recalcularDeudaTotal();
         guardarDB();
         alert("¡Guardado con éxito!");
     }
@@ -1250,7 +1252,7 @@
         guardarDB();
         cerrarModalGasto();
         renderizarCalendario();
-        recalcularDeudaTotal();
+        calcularTotalesGastos();
     }
 
     function eliminarGasto(id) {
@@ -1260,28 +1262,8 @@
             delete db.gastosPagados[id];
             guardarDB();
             renderizarCalendario();
-            recalcularDeudaTotal();
+            calcularTotalesGastos();
         }
-    }
-
-    function recalcularDeudaTotal() {
-        let totalGastos = calcularTotalesGastos();
-        let numSemanasMes = listaSemanasMes.length > 0 ? listaSemanasMes.length : 4;
-        let gastoSemanalBase = totalGastos / numSemanasMes;
-
-        db.semanasMes.forEach(s => {
-            s.gastos = gastoSemanalBase;
-            let netoSem = s.ingresoNeto !== undefined ? s.ingresoNeto : (s.ingreso - 250);
-            if (s.sinAbono) {
-                s.abono = 0;
-            } else {
-                let abono = netoSem - gastoSemanalBase;
-                s.abono = abono < 0 ? 0 : abono;
-            }
-        });
-
-        renderizarMetas();
-        guardarDB();
     }
 
     function procesarSemana() {
@@ -1305,11 +1287,12 @@
         let numSemanasMes = listaSemanasMes.length > 0 ? listaSemanasMes.length : 4;
         let gastoSemanalBase = totalGastos / numSemanasMes;
 
-        let abono = 0;
-        if (!sinAbono) {
-            abono = ingresoNeto - gastoSemanalBase;
-            if (abono < 0) abono = 0;
-        }
+        let abonoSugerido = ingresoNeto - gastoSemanalBase;
+        if(abonoSugerido < 0) abonoSugerido = 0;
+
+        let abonoInputVal = document.getElementById('abonoPersonalizado').value;
+        let abonoReal = (abonoInputVal !== "") ? parseFloat(abonoInputVal) : abonoSugerido;
+        if(sinAbono) abonoReal = 0;
 
         let editIndex = parseInt(document.getElementById('editIndex').value);
 
@@ -1319,7 +1302,7 @@
             db.semanasMes[editIndex].ingresoBruto = ingresoBruto;
             db.semanasMes[editIndex].ingresoNeto = ingresoNeto;
             db.semanasMes[editIndex].gastos = gastoSemanalBase;
-            db.semanasMes[editIndex].abono = abono;
+            db.semanasMes[editIndex].abono = abonoReal;
             db.semanasMes[editIndex].sinAbono = sinAbono;
             document.getElementById('editIndex').value = -1;
             document.getElementById('btnProcesar').innerText = "Registrar Semana";
@@ -1330,22 +1313,24 @@
                 ingresoBruto: ingresoBruto,
                 ingresoNeto: ingresoNeto,
                 gastos: gastoSemanalBase,
-                abono: abono,
+                abono: abonoReal,
                 sinAbono: sinAbono
             });
         }
 
-        recalcularDeudaTotal();
+        guardarDB();
+        renderizarMetas();
 
         document.getElementById('resNombre').innerText = nombreSem;
         document.getElementById('resIngreso').innerText = "$" + ingresoNeto.toFixed(2) + ` (Bruto: $${ingresoBruto.toFixed(2)} - $250)`;
         document.getElementById('resGastos').innerText = "$" + gastoSemanalBase.toFixed(2);
-        document.getElementById('resAbono').innerText = "$" + abono.toFixed(2);
+        document.getElementById('resAbono').innerText = "$" + abonoReal.toFixed(2);
         document.getElementById('resultadoCard').style.display = "block";
 
-        generarSugerenciaAbono(abono);
+        generarSugerenciaAbono(abonoSugerido);
         actualizarTablaSemanas();
         document.getElementById('ingresoSemanal').value = "";
+        document.getElementById('abonoPersonalizado').value = "";
         document.getElementById('sinAbonoDeuda').checked = false;
         seleccionarSemanaAutomatica();
     }
@@ -1354,6 +1339,7 @@
         let s = db.semanasMes[index];
         document.getElementById('nombreSemana').value = s.idSemana || listaSemanasMes[0].id;
         document.getElementById('ingresoSemanal').value = s.ingresoBruto !== undefined ? s.ingresoBruto : (s.ingresoNeto + 250);
+        document.getElementById('abonoPersonalizado').value = s.abono;
         document.getElementById('sinAbonoDeuda').checked = !!s.sinAbono;
         document.getElementById('editIndex').value = index;
         document.getElementById('btnProcesar').innerText = "Actualizar Semana";
@@ -1363,7 +1349,8 @@
     function eliminarSemana(index) {
         if(confirm("¿Eliminar esta semana?")) {
             db.semanasMes.splice(index, 1);
-            recalcularDeudaTotal();
+            guardarDB();
+            renderizarMetas();
             actualizarTablaSemanas();
             document.getElementById('resultadoCard').style.display = "none";
         }
@@ -1451,7 +1438,7 @@
         inicializarSelectSemanas();
         diaSeleccionadoCalendario = null;
         renderizarCalendario();
-        recalcularDeudaTotal();
+        calcularTotalesGastos();
     }
 
     function abrirModalEditarHistorial(index) {
@@ -1559,7 +1546,7 @@
             guardarDB();
             actualizarHistorialDetallado();
             renderizarCalendario();
-            recalcularDeudaTotal();
+            calcularTotalesGastos();
         }
     }
 
@@ -1627,7 +1614,7 @@
         renderizarMetas();
         inicializarSelectSemanas();
         renderizarCalendario();
-        recalcularDeudaTotal();
+        calcularTotalesGastos();
         actualizarTablaSemanas();
         actualizarHistorialDetallado();
     };
