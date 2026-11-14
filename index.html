@@ -568,7 +568,7 @@
 </div>
 
 <script>
-    const STORAGE_KEY = 'finanzas_diego_pro_master_v10';
+    const STORAGE_KEY = 'finanzas_diego_pro_master_v9'; // RECUPERADO: Usamos tu misma llave para rescatar tus datos
     
     let db = {
         metasPrioritarias: [
@@ -613,7 +613,8 @@
     let diaSeleccionadoCalendario = null;
 
     function cargarDB() {
-        let guardado = localStorage.getItem(STORAGE_KEY);
+        // Buscamos primero en la llave actual v9, y si no, rescatamos de cualquier versión previa v10
+        let guardado = localStorage.getItem(STORAGE_KEY) || localStorage.getItem('finanzas_diego_pro_master_v10');
         if (guardado) {
             try {
                 let parsed = JSON.parse(guardado);
@@ -1312,7 +1313,6 @@
         let abonoSugerido = ingresoNeto - gastoSemanalBase;
         if(abonoSugerido < 0) abonoSugerido = 0;
 
-        // Si el usuario especificó un abono manual lo respetamos, si no, usamos el sugerido
         let abonoReal = sinAbono ? 0 : (!isNaN(abonoManualInput) ? abonoManualInput : abonoSugerido);
 
         let editIndex = parseInt(document.getElementById('editIndex').value);
