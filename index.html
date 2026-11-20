@@ -396,6 +396,7 @@
             </tbody>
         </table>
         <button class="btn btn-success" style="margin-top: 12px;" onclick="cerrarMes()">Cerrar Mes e Iniciar Siguiente</button>
+        <button class="btn" style="background-color: var(--warning); color: #0b0f19; margin-top: 8px;" onclick="deshacerUltimoCierre()">↩ Deshacer Último Cierre</button>
     </div>
 
     <!-- Calendario y Control de Pagos Interactivo -->
@@ -568,7 +569,7 @@
 </div>
 
 <script>
-    const STORAGE_KEY = 'finanzas_diego_pro_master_v9'; // RECUPERADO: Usamos tu misma llave para rescatar tus datos
+    const STORAGE_KEY = 'finanzas_diego_pro_master_v9';
     
     let db = {
         metasPrioritarias: [
@@ -613,7 +614,6 @@
     let diaSeleccionadoCalendario = null;
 
     function cargarDB() {
-        // Buscamos primero en la llave actual v9, y si no, rescatamos de cualquier versión previa v10
         let guardado = localStorage.getItem(STORAGE_KEY) || localStorage.getItem('finanzas_diego_pro_master_v10');
         if (guardado) {
             try {
@@ -1464,6 +1464,50 @@
         diaSeleccionadoCalendario = null;
         renderizarCalendario();
         calcularTotalesGastos();
+    }
+
+    function deshacerUltimoCierre() {
+        if (!db.cierresMensualesDetallados || db.cierresMensualesDetallados.length === 0) {
+            alert("No hay ningún cierre mensual guardado para deshacer.");
+            return;
+        }
+
+        let ultimoCierre = db.cierresMensualesDetallados[db.cierresMensualesDetallados.length - 1];
+        let confirmar = confirm(`¿Deseas cancelar el cierre de ${ultimoCierre.mesNombre} y volver a trabajar en ese mes con sus semanas guardadas?`);
+        if (!confirmar) return;
+
+        db.cierresMensualesDetallados.pop();
+
+        db.semanasMes = Array.isArray(ultimoCierre.semanasDetalle) ? [...ultimoCierre.semanasDetalle] : [];
+        db.gastosPagados = ultimoCierre.gastosPagados ? { ...ultimoCierre.gastosPagados } : {};
+
+        if (typeof ultimoCierre.mesIndex === "number" && typeof ultimoCierre.anio === "number") {
+            mesIndexTrabajo = ultimoCierre.mesIndex;
+            anioTrabajo = ultimoCierre.anio;
+        } else {
+            mesIndexTrabajo--;
+            if (mesIndexTrabajo < 0) {
+                mesIndexTrabajo = 11;
+                anioTrabajo--;
+            }
+        }
+
+        mesIndexVisual = mesIndexTrabajo;
+        anioVisual = anioTrabajo;
+
+        sincronizarFondoArrastre();
+        guardarDB();
+
+        listaSemanasMes = obtenerSemanasLaborables(anioTrabajo, mesIndexTrabajo);
+        inicializarSelectSemanas();
+        diaSeleccionadoCalendario = null;
+        renderizarMetas();
+        renderizarCalendario();
+        calcularTotalesGastos();
+        actualizarTablaSemanas();
+        actualizarHistorialDetallado();
+
+        alert(`Listo: se canceló el cierre y volviste a ${nombresMeses[mesIndexTrabajo]} ${anioTrabajo} con tus semanas intactas.`);
     }
 
     function abrirModalEditarHistorial(index) {
